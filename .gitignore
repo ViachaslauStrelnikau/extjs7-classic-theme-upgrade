@@ -1,0 +1,60 @@
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+/out/
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# Java build output
+target/
+build/
+*.class
+*.jar.original
+*.war
+*.ear
+
+# Maven
+.mvn/timing.properties
+
+# Ext JS / Sencha generated output
+TestApp/build/
+TestApp/ext
+
+# Bundled Ext JS SDK (keep application locale files)
+ext-frame/*
+node_modules/*
+bootstrap.*
+.playwright-cli/
+
+# Node.js dependencies and caches
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+resources/wgr-ocrKey.json
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Agent worktrees
+.worktrees/
