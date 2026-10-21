@@ -20,6 +20,12 @@ Preserve geometry, existing styles, component behavior, and standard build integ
   → A: No. Production CSS, theme inheritance, and component inputs are required before baseline
   acceptance or modernization. Demo results alone cannot pass this gate.
 
+### Session 2026-10-21
+
+- The project owner approved skipping the production check for demo-only visual work.
+  G0 remains blocked. Demo results do not prove production compatibility. See
+  [approved exception](evidence/approved-exceptions.md).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Select and Restore the Theme (Priority: P1)

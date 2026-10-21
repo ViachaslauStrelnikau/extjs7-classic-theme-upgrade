@@ -7,7 +7,7 @@ description: "Tasks for the replaceable Ext JS 7.7.0.31 Classic theme"
 **Input**: Design documents in `specs/001-modernize-classic-theme/`.
 **Authority**: Constitution 2.0.0, `spec.md`, `plan.md`, and both contracts.
 **Target**: Ext JS 7.7.0.31 Classic Toolkit only.
-**Status**: Partial implementation. The empty package, demo fixtures, evidence checks, and browser capture runner exist. Production compatibility and visual modernization remain incomplete.
+**Status**: Partial implementation. The selectable theme package, demo fixtures, evidence checks, and browser capture runner exist. Demo-only paint refinements are in progress. Production compatibility remains incomplete.
 
 SDK means software development kit. CSS means Cascading Style Sheets.
 DOM means Document Object Model. DPR means device pixel ratio.
@@ -31,7 +31,7 @@ All new documentation MUST use ASD-STE100 Simplified Technical English principle
 
 ## Current blockers
 
-- Production inputs are missing. G0 blocks baseline acceptance and paint changes.
+- Production inputs are missing. G0 remains blocked for production acceptance. The owner approved demo-only paint work by exception. Record its limits in [approved exceptions](evidence/approved-exceptions.md).
 - Playwright Test 1.64.1 and matching Chromium and Firefox binaries are installed. The capture runner completed all four browser/DPR projects at both configured viewports in the development build. See `artifacts/compatibility/viewport-matrix-20261021c/`.
 - Firefox layout-shift records do not measure every layout pass. The comparator blocks affected acceptance.
 - The earlier Fashion failure log is absent. Its cause is unknown.
@@ -150,11 +150,11 @@ Accept the group before starting the next group. G2 and US3 are mandatory prereq
 
 - [ ] T043 [P] [US4] Extend `tests/compatibility/compare.test.mjs` with modernization cases. Reject missing goal approval, stale baseline hashes, out-of-order groups, an unaccepted previous group, unapproved paint properties, failed rollback, and any protected-property or behavior difference despite visual approval.
 - [ ] T044 [US4] Implement approved-group comparison in `tests/compatibility/compare.mjs` and `tests/compatibility/report.mjs`. Require immutable original references, matching `approvals.json`, modernized and rollback captures, per-case goals, and separate approved modernized references. Keep original, actual, and difference images. Do not auto-approve screenshots or erase prior failures.
-- [ ] T045 [US4] Record approved goals for required surface families in `artifacts/compatibility/<run>/approvals.json`. Include components, variables and generated-rule impact, palette and semantic-color constraints, risk, tests, rollback, reviewer, scope, and date. Obtain real reviewer approval. Do not treat task generation or this plan as approval.
+- [X] T045 [US4] Record approved goals for required surface families in `artifacts/compatibility/theme-modern-demo-20261021/approvals.json`. Include components, variables and generated-rule impact, palette and semantic-color constraints, risk, tests, rollback, reviewer, scope, and date. The project owner approved the demo-only goal in this conversation. This does not approve production use or screenshots.
 
 ### Ordered Paint Groups
 
-- [ ] T046 [US4] Reduce gloss in `TestApp/packages/local/theme-classic-modern/sass/var/button/Button.scss`, `TestApp/packages/local/theme-classic-modern/sass/var/panel/Panel.scss`, `TestApp/packages/local/theme-classic-modern/sass/var/grid/header/Container.scss`, and `TestApp/packages/local/theme-classic-modern/sass/var/tab/Tab.scss`. Use verified inherited variables. Cover toolbar, form, menu, and floating surfaces through their verified variables or minimal class-mapped rules under `TestApp/packages/local/theme-classic-modern/sass/src/`. Preserve geometry and color identity. Limit the group to approved surfaces and gradients.
+- [ ] T046 [US4] Reduce gloss in `TestApp/packages/local/theme-classic-modern/sass/var/button/Button.scss`, `TestApp/packages/local/theme-classic-modern/sass/var/panel/Panel.scss`, `TestApp/packages/local/theme-classic-modern/sass/var/grid/header/Container.scss`, and `TestApp/packages/local/theme-classic-modern/sass/var/tab/Tab.scss`. Use verified inherited variables. Cover toolbar, form, menu, and floating surfaces through their verified variables or minimal class-mapped rules under `TestApp/packages/local/theme-classic-modern/sass/src/`. Preserve geometry and color identity. Limit the group to approved surfaces and gradients. **Partial**: overrides and development build are complete. T043–T044 and T047 validation remain open.
 - [ ] T047 [US4] Validate T046 with both build modes, the full browser/DPR matrix, all affected states, clipping checks, computed styles, interactions, and standard rollback. Save evidence and G3 acceptance in `artifacts/compatibility/<run>/gates.json`. Resolve all failures before accepting or starting T048.
 - [ ] T048 [US4] Refine approved background colors, border colors, and separators in class-mapped files under `TestApp/packages/local/theme-classic-modern/sass/var/`. Preserve border widths, base palette identity, semantic colors, and geometry variables. Record the exact file and variable changes in `artifacts/compatibility/<run>/approvals.json` before edits.
 - [ ] T049 [US4] Validate T048 through the same regression, visual review, and rollback process as T047. Save separate group evidence in `artifacts/compatibility/<run>/`. Require G3 acceptance before T050.
