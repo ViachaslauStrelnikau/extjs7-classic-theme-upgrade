@@ -20,3 +20,12 @@ Demo files do not prove production compatibility.
 Do not replace these inputs with demo evidence.
 Do not accept G0, G1, G2, or modernization while required inputs are missing.
 Record received files in the run manifest. Verify each file hash and its source before G0 review.
+
+## Current Scope
+
+**Recorded**: 2026-10-21
+
+The project owner directed implementation to focus on the `TestApp` demo.
+No production files or inventory were supplied with this direction.
+Keep G0 blocked and T033 incomplete.
+Use demo evidence only for demo work. Do not claim production compatibility.
