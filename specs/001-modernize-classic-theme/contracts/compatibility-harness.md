@@ -1,17 +1,18 @@
 # Compatibility Harness Contract
 
-**Status**: Proposed commands and evidence formats. No harness script exists yet.
-Use this contract during implementation. Do not report these commands as tested.
+**Status**: Partial. Capture, comparison, reporting, and evidence checks exist.
+The original demo matrix completed in development. Production compatibility remains unproved.
 
 ## Commands
 
-Add these root npm scripts during implementation:
+Use these root npm scripts:
 
-| Script | Planned implementation | Result |
+| Script | Implementation | Status |
 | --- | --- | --- |
-| `compat:capture` | Playwright with `tests/compatibility/playwright.config.js`; required suites as defined below | Raw evidence and compatibility assertions |
-| `compat:compare` | Node.js `tests/compatibility/compare.mjs` | Categorized comparison results |
-| `compat:report` | Node.js `tests/compatibility/report.mjs` | Acceptance and limitation report |
+| `test:compatibility` | Node.js test runner | 39 dependency-free tests pass |
+| `compat:capture` | Playwright with `tests/compatibility/playwright.config.js` | 336 original-theme demo captures passed in development. Production acceptance remains blocked. |
+| `compat:compare` | Node.js `tests/compatibility/compare.mjs` | Implemented. A run with incomplete evidence returns a blocked status. |
+| `compat:report` | Node.js `tests/compatibility/report.mjs` | Implemented. The report keeps blocked statuses. |
 
 Helpers operate on evidence. They MUST NOT replace Cmd builds or modify theme configuration.
 
@@ -99,13 +100,15 @@ Keep original, actual, and difference images. Do not auto-approve reference upda
 
 ## Evidence Layout
 
-Use `artifacts/compatibility/<run>/<build-mode>/<role>/<project>/<case>/<state>/`.
+Use `artifacts/compatibility/<run>/<build-mode>/<role>/<project-viewport>/<case>/<state>/`.
 Angle-bracket names identify path fields. They are not literal directory names.
+The project-viewport name includes the browser project and viewport, such as `chromium-dpr1-1280x900`.
 
 Run-level files: `production-inputs.json`, `cases.json`, `approvals.json`, `gates.json`.
 Role-level files: `manifest.json`, `build.log`.
-Case files: `geometry.json`, `styles.json`, `dom.json`, `stylesheets.json`,
-`interactions.json`, `diagnostics.json`, and `screenshot.png`.
+Case files: `capture.json`, `geometry.json`, `styles.json`, `dom.json`, `stylesheets.json`,
+`interactions.json`, `diagnostics.json`, and `screenshot.png`. `capture.json` contains the complete
+versioned record. Each other JSON file contains its named field and capture identity.
 Comparison files: `results.json`, difference images, failure traces, and `report.html`.
 Final document: `compatibility-report.md` with AC-001 through AC-014 evidence links.
 See [data-model.md](../data-model.md) for record fields and validation.

@@ -35,6 +35,11 @@ bootstrap.*
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+coverage/
+dist/
+playwright-report/
+test-results/
+/artifacts/compatibility/
 
 # Logs and temporary files
 *.log
