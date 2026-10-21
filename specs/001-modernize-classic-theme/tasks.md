@@ -288,3 +288,17 @@ Do not mark a task complete until its stated evidence exists.
 
 - [X] T072 [HIGH] Connect compareModernizationRun to the compat:compare workflow. Include each change group, case result, rollback result, and difference image in tests/compatibility/report.mjs. Remove the stale claim that the theme has no visual changes. Preserve blocked and failed results. Per T044, FR-022–FR-027, and SC-008 (partial).
 - [ ] T073 [HIGH] Define and approve paint goals for form controls, menus, and floating components. Add approved paint-only Sass variables under TestApp/packages/local/theme-classic-modern/sass/var/. Map each family to its applicable states. Validate each group in order and record omitted changes with a reason. Keep demo-only scope and blocked acceptance statuses where required evidence is incomplete. Per FR-014–FR-016, FR-020, FR-026, SC-004, and US4/AC1–AC3 (missing).
+
+## Phase 11: Convergence
+
+- [ ] T074 [CRITICAL] Resolve the G2 sequencing conflict for active overrides in TestApp/packages/local/theme-classic-modern/sass/var/. Record an explicit approved demo-only G2 exception with reviewer, scope, and date, or restore the empty derived theme until G2 passes. Recapture and validate retained changes per Constitution III, plan G2, and T046–T047 (contradicts).
+
+## Phase 12: Convergence
+
+- [ ] T075 [CRITICAL] Complete and verify the G0 production inputs: source hashes, stylesheet order, active theme chain, component and state inventory, browser requirements, and reviewer evidence. Keep baseline acceptance blocked until verification. Reconcile T033 and T066 per FR-006, FR-030, and US2/AC4 (partial).
+- [ ] T076 [CRITICAL] Complete stable original captures and derived and rollback comparisons. Resolve unstable layout measurements or record unavailable evidence and keep G1/G2 blocked. Reconcile T035–T037 and T067 per FR-007–FR-008, SC-002, and US2/AC1–AC2 (partial).
+- [ ] T077 [CRITICAL] Resolve active theme overrides while G2 is blocked. Record an explicit demo-only G2 exception with reviewer, scope, and date, or restore the empty derived theme. Recapture and validate retained overrides. Complete T074 per Constitution III, plan G2, FR-008, and T046–T047 (contradicts).
+- [ ] T078 [HIGH] Complete production-specific component and selector mapping and the full comparison matrix. Keep unsupported production coverage blocked. Reconcile T040 and T042 per FR-013, FR-020–FR-025, and SC-003, SC-005–SC-006 (partial).
+- [ ] T079 [HIGH] Complete the remaining visual groups in order. Approve each goal and validate geometry, styles, behavior, and rollback before starting the next group. Reconcile T046–T057, T070, and T073 per FR-014–FR-026 and SC-004 (partial).
+- [ ] T080 [HIGH] Run the documented final workflow in both build modes. Generate the report with linked evidence for AC-001 through AC-014 and SC-001 through SC-008. Record the release review and all blocked limits. Reconcile T060–T062 and T071 per FR-027, SC-008, and AC-014 (partial).
+- [X] T081 [MEDIUM] Close the build-recovery finding by documenting that the missing historical Fashion log prevents a root-cause finding. Record the supported recovery evidence and its limits without inventing a cause. Reconcile T005 per plan Phase 0 and Constitution IV (partial).
