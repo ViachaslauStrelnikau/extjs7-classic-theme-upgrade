@@ -638,12 +638,104 @@ export function requiredSuiteNames(stage) {
     fail(`Unknown suite stage: ${stage}.`);
 }
 
+function reportTestStatus(test) {
+    if (test.status === 'expected') return 'passed';
+    if (test.status === 'skipped') return 'skipped';
+    if (test.status === 'flaky') return 'flaky';
+    if (test.status === 'unexpected') return 'failed';
+    const lastAttempt = test.results?.at(-1)?.status;
+    if (lastAttempt === 'passed') return 'passed';
+    if (lastAttempt === 'skipped') return 'skipped';
+    return 'failed';
+}
+
+function collectReportTests(suites, inheritedFile = '', records = []) {
+    for (const suite of suites || []) {
+        const suiteFile = path.basename(suite.file || inheritedFile);
+        for (const spec of suite.specs || []) {
+            const file = path.basename(spec.file || suiteFile);
+            if (!requiredSuiteNames('us3').includes(file)) continue;
+            for (const test of spec.tests || []) {
+                const project = test.projectName || test.projectId || 'unassigned';
+                const attempts = (test.results || []).map((result) => result.status || 'unknown');
+                records.push({
+                    suite: file,
+                    title: spec.title || 'Untitled test',
+                    project,
+                    status: reportTestStatus(test),
+                    expectedStatus: test.expectedStatus || 'passed',
+                    attempts,
+                    durationMs: (test.results || []).reduce((total, result) => total + (Number(result.duration) || 0), 0),
+                    attachments: (test.results || []).flatMap((result) => result.attachments || [])
+                        .map((attachment) => ({ name: attachment.name || 'attachment', path: attachment.path || null }))
+                });
+            }
+        }
+        collectReportTests(suite.suites, suiteFile, records);
+    }
+    return records;
+}
+
+function summarizeTests(tests, globalErrors = []) {
+    const counts = {
+        total: tests.length,
+        passed: tests.filter((item) => item.status === 'passed').length,
+        failed: tests.filter((item) => item.status === 'failed').length,
+        skipped: tests.filter((item) => item.status === 'skipped').length,
+        flaky: tests.filter((item) => item.status === 'flaky').length
+    };
+    const projects = new Map();
+    for (const item of tests) {
+        const project = projects.get(item.project) || { project: item.project, total: 0, passed: 0, failed: 0, skipped: 0, flaky: 0 };
+        project.total += 1;
+        project[item.status] += 1;
+        projects.set(item.project, project);
+    }
+    return { ...counts, projects: Array.from(projects.values()).sort((left, right) => left.project.localeCompare(right.project)), tests, globalErrors };
+}
+
+export function summarizePlaywrightSuites(stage, report) {
+    const required = requiredSuiteNames(stage);
+    const tests = collectReportTests(Array.isArray(report?.suites) ? report.suites : []);
+    const globalErrors = Array.isArray(report?.errors) ? report.errors : [];
+    return required.map((suite) => {
+        const suiteTests = tests.filter((item) => item.suite === suite);
+        const outcome = summarizeTests(suiteTests, suite === 'capture.spec.js' ? globalErrors : []);
+        let status = outcome.total === 0 ? 'missing' : 'completed';
+        if (outcome.failed > 0 || outcome.flaky > 0 || outcome.globalErrors.length > 0) status = 'failed';
+        else if (outcome.skipped > 0) status = 'incomplete';
+        return { suite, status, outcome, evidencePaths: [] };
+    });
+}
+
+function validPassingOutcome(outcome) {
+    if (!outcome || typeof outcome !== 'object') return false;
+    const counts = ['total', 'passed', 'failed', 'skipped', 'flaky'].map((field) => outcome[field]);
+    if (counts.some((value) => !Number.isSafeInteger(value) || value < 0)) return false;
+    return outcome.total > 0
+        && outcome.passed === outcome.total
+        && outcome.failed === 0
+        && outcome.skipped === 0
+        && outcome.flaky === 0;
+}
+
 export function validateSuiteResults(stage, suiteResults) {
     requireArray(suiteResults, 'suiteResults');
-    const byName = new Map(suiteResults.map((result) => [result.suite, result]));
+    const byName = new Map();
+    for (const result of suiteResults) {
+        requireObject(result, 'suiteResults item');
+        requireString(result.suite, 'suiteResults.suite');
+        if (byName.has(result.suite)) fail(`Suite results contain a duplicate identity: ${result.suite}.`);
+        byName.set(result.suite, result);
+    }
     const missing = requiredSuiteNames(stage).filter((suite) => {
         const result = byName.get(suite);
-        return !result || result.status !== 'completed' || !Array.isArray(result.evidencePaths);
+        if (!result || result.status !== 'completed' || !Array.isArray(result.evidencePaths)
+            || result.evidencePaths.length === 0 || !validPassingOutcome(result.outcome)) return true;
+        if (result.evidencePaths.some((item) => typeof item !== 'string' || item.trim() === '')) return true;
+        if (result.roles && Object.values(result.roles).some((role) => role.status !== 'completed'
+            || !validPassingOutcome(role.outcome) || !Array.isArray(role.evidencePaths) || role.evidencePaths.length === 0)) return true;
+        return false;
     });
     if (missing.length) {
         fail(`Required compatibility suites are missing or incomplete: ${missing.join(', ')}.`);

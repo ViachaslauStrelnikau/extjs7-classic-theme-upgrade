@@ -11,6 +11,7 @@ import {
     parseCaptureInputs,
     readJson,
     sha256File,
+    summarizePlaywrightSuites,
     validateBuildManifest,
     validateRecord,
     validateSuiteResults,
@@ -200,9 +201,12 @@ async function prepareRun(inputs, casesDocument) {
     return { runRoot, manifest, manifestPath };
 }
 
-function runPlaywright(env) {
+function runPlaywright(env, listOnly = false) {
     return new Promise((resolve, reject) => {
-        const child = spawn(process.execPath, [playwrightCli, 'test', '--config', configPath], {
+        const playwrightArgs = [playwrightCli, 'test'];
+        if (listOnly) playwrightArgs.push('--list');
+        playwrightArgs.push('--config', configPath);
+        const child = spawn(process.execPath, playwrightArgs, {
             cwd: repositoryRoot,
             env,
             stdio: ['inherit', 'pipe', 'pipe']
@@ -291,8 +295,9 @@ async function listFiles(directory) {
     return files;
 }
 
-async function updateRunEvidence(runRoot, inputs, reportPath, exitCode) {
-    const { paths, environments } = await readProjectEvidence(runRoot, inputs, exitCode !== 0);
+export async function updateRunEvidence(runRoot, inputs, reportPath, exitCode) {
+    const { paths, environments } = await readProjectEvidence(runRoot, inputs, true);
+    const projectEvidenceComplete = environments.length === captureVariants.length;
     const currentEnvironment = {
         schemaVersion: 1,
         runId: inputs.runId,
@@ -302,14 +307,73 @@ async function updateRunEvidence(runRoot, inputs, reportPath, exitCode) {
         await writeAppendOnlyCollection(path.join(runRoot, 'environments.json'), currentEnvironment, 'environments', 'environmentId');
     }
 
-    const suiteNames = (await import('./evidence.mjs')).requiredSuiteNames(inputs.suiteStage);
-    const suiteStatus = exitCode === 0 ? 'completed' : 'failed';
-    const reportRelative = path.relative(runRoot, reportPath).split(path.sep).join('/');
-    paths.push(reportRelative);
-    const roleRoot = path.join(runRoot, inputs.buildMode, inputs.themeRole);
-    for (const artifactPath of await listFiles(path.join(roleRoot, 'playwright-artifacts'))) {
-        paths.push(path.relative(runRoot, artifactPath).split(path.sep).join('/'));
+    let report = null;
+    try {
+        report = await readJson(reportPath);
+    } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
     }
+    const suiteSummaries = summarizePlaywrightSuites(inputs.suiteStage, report);
+    const captureSummary = suiteSummaries.find((summary) => summary.suite === 'capture.spec.js');
+    if (captureSummary && !projectEvidenceComplete && captureSummary.status === 'completed') {
+        captureSummary.status = 'incomplete';
+        captureSummary.outcome.globalErrors.push('Capture evidence is missing for one or more browser projects.');
+    }
+    const reportRelative = path.relative(runRoot, reportPath).split(path.sep).join('/');
+    if (report) paths.push(reportRelative);
+    const roleRoot = path.join(runRoot, inputs.buildMode, inputs.themeRole);
+    const artifactPaths = (await listFiles(path.join(roleRoot, 'playwright-artifacts')))
+        .map((artifactPath) => path.relative(runRoot, artifactPath).split(path.sep).join('/'));
+    for (const artifactPath of artifactPaths) {
+        paths.push(artifactPath);
+    }
+    const sharedEvidencePaths = Array.from(new Set([
+        ...paths,
+        ...(report ? [reportRelative] : []),
+        ...artifactPaths
+    ])).sort();
+
+    const suiteOutputRoot = path.join(roleRoot, 'suite-results');
+    await mkdir(suiteOutputRoot, { recursive: true });
+    const currentSuiteResults = new Map();
+    for (const summary of suiteSummaries) {
+        const resultPath = path.join(suiteOutputRoot, `${summary.suite}.json`);
+        const resultRelative = path.relative(runRoot, resultPath).split(path.sep).join('/');
+        const relatedAttachments = summary.outcome.tests.flatMap((item) => item.attachments)
+            .map((attachment) => attachment.path)
+            .filter((attachmentPath) => typeof attachmentPath === 'string')
+            .map((attachmentPath) => {
+                const resolved = path.isAbsolute(attachmentPath) ? attachmentPath : path.resolve(roleRoot, attachmentPath);
+                const relative = path.relative(runRoot, resolved);
+                return relative.startsWith('..') || path.isAbsolute(relative) ? null : relative.split(path.sep).join('/');
+            })
+            .filter(Boolean);
+        const suiteEvidencePaths = summary.suite === 'capture.spec.js' ? sharedEvidencePaths : [
+            ...(report ? [reportRelative] : [])
+        ];
+        const roleEvidencePaths = Array.from(new Set([
+            ...suiteEvidencePaths,
+            ...relatedAttachments,
+            resultRelative
+        ])).sort();
+        const suiteEvidence = {
+            schemaVersion: 1,
+            runId: inputs.runId,
+            buildMode: inputs.buildMode,
+            themeRole: inputs.themeRole,
+            suite: summary.suite,
+            status: summary.status,
+            outcome: summary.outcome,
+            evidencePaths: roleEvidencePaths
+        };
+        await writeOrVerifyImmutable(resultPath, suiteEvidence);
+        currentSuiteResults.set(summary.suite, {
+            status: summary.status,
+            outcome: summary.outcome,
+            evidencePaths: roleEvidencePaths
+        });
+    }
+
     const previousSuitePath = path.join(runRoot, 'suite-results.json');
     let previous = { schemaVersion: 1, runId: inputs.runId, suites: [] };
     try {
@@ -318,18 +382,35 @@ async function updateRunEvidence(runRoot, inputs, reportPath, exitCode) {
         if (error.code !== 'ENOENT') throw error;
     }
     const suiteMap = new Map(previous.suites.map((suite) => [suite.suite, suite]));
-    for (const suite of suiteNames) {
+    for (const [suite, current] of currentSuiteResults) {
         const prior = suiteMap.get(suite);
-        const status = prior?.status === 'failed' ? 'failed' : suiteStatus;
+        const priorRole = prior?.roles?.[inputs.themeRole];
+        const roleResult = priorRole?.status === 'failed' ? priorRole : current;
+        const roles = { ...(prior?.roles || {}), [inputs.themeRole]: roleResult };
+        const roleResults = Object.values(roles);
+        const outcome = roleResults.reduce((total, role) => ({
+            total: total.total + (role.outcome?.total || 0),
+            passed: total.passed + (role.outcome?.passed || 0),
+            failed: total.failed + (role.outcome?.failed || 0),
+            skipped: total.skipped + (role.outcome?.skipped || 0),
+            flaky: total.flaky + (role.outcome?.flaky || 0)
+        }), { total: 0, passed: 0, failed: 0, skipped: 0, flaky: 0 });
+        const status = roleResults.some((role) => role.status === 'failed')
+            ? 'failed'
+            : roleResults.every((role) => role.status === 'completed') ? 'completed' : 'incomplete';
         suiteMap.set(suite, {
             suite,
             status,
-            evidencePaths: Array.from(new Set([...(prior?.evidencePaths || []), ...paths])).sort(),
-            roles: { ...(prior?.roles || {}), [inputs.themeRole]: suiteStatus }
+            outcome,
+            evidencePaths: Array.from(new Set([
+                ...(prior?.evidencePaths || []),
+                ...roleResults.flatMap((role) => role.evidencePaths || [])
+            ])).sort(),
+            roles
         });
     }
     const suiteDocument = { schemaVersion: 1, runId: inputs.runId, suites: Array.from(suiteMap.values()) };
-    if (suiteStatus === 'completed') validateSuiteResults(inputs.suiteStage, suiteDocument.suites);
+    if (exitCode === 0) validateSuiteResults(inputs.suiteStage, suiteDocument.suites);
     const temporary = `${previousSuitePath}.${process.pid}.tmp`;
     try {
         await readFile(previousSuitePath);
@@ -342,6 +423,12 @@ async function updateRunEvidence(runRoot, inputs, reportPath, exitCode) {
 }
 
 async function main() {
+    if (process.argv.slice(2).includes('--list')) {
+        const exitCode = await runPlaywright(process.env, true);
+        if (exitCode !== 0) process.exitCode = exitCode;
+        return;
+    }
+
     const inputs = parseCaptureInputs(process.env);
     const casesDocument = await ensureCases(path.join(repositoryRoot, 'artifacts', 'compatibility', inputs.runId), inputs.runId);
     const { runRoot } = await prepareRun(inputs, casesDocument);
@@ -360,7 +447,9 @@ async function main() {
     if (exitCode !== 0) process.exitCode = exitCode;
 }
 
-main().catch((error) => {
-    console.error(error.stack || error.message);
-    process.exitCode = 2;
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+    main().catch((error) => {
+        console.error(error.stack || error.message);
+        process.exitCode = 2;
+    });
+}

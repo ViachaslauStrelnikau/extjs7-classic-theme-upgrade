@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { updateRunEvidence } from './capture.mjs';
 import {
     approvalIsCurrent,
     captureEvidencePath,
@@ -18,6 +19,7 @@ import {
     validateEvidenceRelationships,
     validateRecord,
     validateSuiteResults,
+    summarizePlaywrightSuites,
     writeImmutableJson
 } from './evidence.mjs';
 
@@ -215,10 +217,129 @@ test('blocks later gates when their prerequisites are missing or fail', () => {
 });
 
 test('validates required suites by story stage', () => {
-    assert.equal(validateSuiteResults('us2', [{ suite: 'capture.spec.js', status: 'completed', evidencePaths: ['manifest.json'] }]), true);
-    const complete = ['capture.spec.js', 'css-contract.spec.js', 'interactions.spec.js'].map((suite) => ({ suite, status: 'completed', evidencePaths: ['manifest.json'] }));
+    const passingOutcome = { total: 1, passed: 1, failed: 0, skipped: 0, flaky: 0 };
+    assert.equal(validateSuiteResults('us2', [{
+        suite: 'capture.spec.js', status: 'completed', outcome: passingOutcome, evidencePaths: ['capture.json']
+    }]), true);
+    const required = ['capture.spec.js', 'css-contract.spec.js', 'interactions.spec.js'];
+    const complete = required.map((suite) => ({
+        suite, status: 'completed', outcome: passingOutcome, evidencePaths: [`suites/${suite}.json`]
+    }));
     assert.equal(validateSuiteResults('us3', complete), true);
     assert.throws(() => validateSuiteResults('us3', complete.slice(0, 2)), /interactions\.spec\.js/);
+    for (const missingSuite of required) {
+        assert.throws(() => validateSuiteResults('us3', complete.filter((result) => result.suite !== missingSuite)),
+            new RegExp(missingSuite.replace('.', '\\.')));
+    }
+    assert.throws(() => validateSuiteResults('us3', complete.map((result, index) => index === 0 ? {
+        ...result,
+        outcome: { total: 1, passed: 0, failed: 1, skipped: 0, flaky: 0 }
+    } : result)), /capture\.spec\.js/);
+});
+
+test('summarizes actual Playwright outcomes per required suite and project', () => {
+    const report = {
+        errors: [],
+        suites: [{
+            file: 'css-contract.spec.js',
+            specs: [{
+                file: 'css-contract.spec.js',
+                title: 'asserts CSS',
+                tests: [{
+                    projectName: 'chromium-dpr1',
+                    expectedStatus: 'passed',
+                    status: 'expected',
+                    results: [{ status: 'passed', duration: 18, attachments: [] }]
+                }]
+            }]
+        }, {
+            file: 'interactions.spec.js',
+            specs: [{
+                file: 'interactions.spec.js',
+                title: 'asserts interaction',
+                tests: [{
+                    projectName: 'firefox-dpr2',
+                    expectedStatus: 'passed',
+                    status: 'unexpected',
+                    results: [{ status: 'failed', duration: 27, attachments: [{ name: 'trace', path: 'trace.zip' }] }]
+                }]
+            }]
+        }]
+    };
+
+    const suites = summarizePlaywrightSuites('us3', report);
+    assert.equal(suites.find((suite) => suite.suite === 'css-contract.spec.js').status, 'completed');
+    assert.deepEqual(suites.find((suite) => suite.suite === 'css-contract.spec.js').outcome.projects, [{
+        project: 'chromium-dpr1', total: 1, passed: 1, failed: 0, skipped: 0, flaky: 0
+    }]);
+    const failedSuite = suites.find((suite) => suite.suite === 'interactions.spec.js');
+    assert.equal(failedSuite.status, 'failed');
+    assert.equal(failedSuite.outcome.failed, 1);
+    assert.deepEqual(failedSuite.outcome.tests[0].attempts, ['failed']);
+    assert.equal(suites.find((suite) => suite.suite === 'capture.spec.js').status, 'missing');
+});
+
+test('stores per-suite outcomes and evidence paths from the Playwright report', async () => {
+    const runRoot = await mkdtemp(path.join(os.tmpdir(), 'compatibility-suite-results-'));
+    try {
+        const reportPath = path.join(runRoot, 'development', 'modernized', 'playwright-report.json');
+        await mkdir(path.dirname(reportPath), { recursive: true });
+        const tracePath = path.join(runRoot, 'development', 'modernized', 'failure', 'trace.zip');
+        await mkdir(path.dirname(tracePath), { recursive: true });
+        await writeFile(tracePath, 'trace evidence');
+        await writeFile(reportPath, JSON.stringify({
+            errors: [],
+            suites: [{
+                file: 'css-contract.spec.js',
+                specs: [{
+                    file: 'css-contract.spec.js',
+                    title: 'CSS contract',
+                    tests: [{
+                        projectName: 'chromium-dpr1',
+                        expectedStatus: 'passed',
+                        status: 'expected',
+                        results: [{ status: 'passed', duration: 12, attachments: [] }]
+                    }]
+                }]
+            }, {
+                file: 'interactions.spec.js',
+                specs: [{
+                    file: 'interactions.spec.js',
+                    title: 'Interaction contract',
+                    tests: [{
+                        projectName: 'firefox-dpr1',
+                        expectedStatus: 'passed',
+                        status: 'unexpected',
+                        results: [{ status: 'failed', duration: 24, attachments: [{ name: 'trace', path: 'failure/trace.zip' }] }]
+                    }]
+                }]
+            }]
+        }), 'utf8');
+
+        await updateRunEvidence(runRoot, {
+            runId: 'suite-run-001',
+            themeRole: 'modernized',
+            buildMode: 'development',
+            suiteStage: 'us3'
+        }, reportPath, 1);
+
+        const resultsPath = path.join(runRoot, 'suite-results.json');
+        const results = JSON.parse(await readFile(resultsPath, 'utf8'));
+        const css = results.suites.find((suite) => suite.suite === 'css-contract.spec.js');
+        const interactions = results.suites.find((suite) => suite.suite === 'interactions.spec.js');
+        const capture = results.suites.find((suite) => suite.suite === 'capture.spec.js');
+        assert.equal(css.status, 'completed');
+        assert.equal(css.outcome.passed, 1);
+        assert.equal(css.roles.modernized.outcome.projects[0].project, 'chromium-dpr1');
+        assert.ok(css.evidencePaths.includes('development/modernized/playwright-report.json'));
+        assert.ok(css.evidencePaths.some((item) => item.endsWith('suite-results/css-contract.spec.js.json')));
+        assert.equal(interactions.status, 'failed');
+        assert.equal(interactions.outcome.failed, 1);
+        assert.ok(interactions.roles.modernized.evidencePaths.some((item) => item.endsWith('failure/trace.zip')));
+        assert.equal(capture.status, 'incomplete');
+    } finally {
+        await rm(runRoot, { recursive: true, force: true });
+    }
 });
 
 test('validates safe capture inputs and blocks query-based theme switching', () => {

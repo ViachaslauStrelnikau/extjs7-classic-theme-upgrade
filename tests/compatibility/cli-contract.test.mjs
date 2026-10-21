@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import {
     assertCapturePathAvailable,
     buildRoleForCapture,
@@ -21,6 +23,18 @@ test('exposes evidence comparison and report commands', async () => {
     const packageJson = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8'));
     assert.equal(packageJson.scripts['compat:compare'], 'node tests/compatibility/compare.mjs');
     assert.equal(packageJson.scripts['compat:report'], 'node tests/compatibility/report.mjs');
+});
+
+test('capture entry point lists all required US3 suites without capture inputs', () => {
+    const capturePath = fileURLToPath(new URL('./capture.mjs', import.meta.url));
+    const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url));
+    const output = execFileSync(process.execPath, [capturePath, '--list'], {
+        cwd: repositoryRoot,
+        encoding: 'utf8'
+    });
+    for (const suite of ['capture.spec.js', 'css-contract.spec.js', 'interactions.spec.js']) {
+        assert.match(output, new RegExp(suite.replace('.', '\\.')));
+    }
 });
 
 test('requires each COMPAT input and validates values', () => {
