@@ -9,6 +9,24 @@
 The project owner approved skipping the production check in this conversation on 2026-10-21.
 This approval permits visual work for `TestApp` only.
 
+The project owner also approved a demo-only exception to the G2 sequencing rule on 2026-10-21.
+This approval permits the team to retain and validate the existing T046 paint overrides while
+G2 remains blocked. The approval does not pass G2 or accept the derived baseline.
+
+**Reviewer**: Project owner (user approval in this conversation)
+**Scope**: `TestApp` only. Continue the T046 background-color and background-image Sass
+variable changes for buttons, panel headers, grid headers, tabs, and tab bars. Use the
+original `ext-theme-classic` theme as the immutable reference for every measurement and
+behavior comparison. Preserve original geometry, protected styles, selectors, DOM, and
+interactions. Do not extend this approval to production, other paint properties, or later
+change groups.
+**Date**: 2026-10-21
+**Evidence ID**: `approved-g2-sequencing-exception-20261021`
+
+The team must capture and compare the retained overrides in the demo. Record incomplete or
+unsupported checks as blocked. Keep G0, G1, G2, and G3 acceptance blocked where evidence is
+missing or incomplete. Production use remains out of scope.
+
 ## Scope
 
 Use the verified `TestApp` theme chain:

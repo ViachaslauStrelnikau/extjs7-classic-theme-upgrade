@@ -294,7 +294,7 @@ Do not mark a task complete until its stated evidence exists.
 
 ## Phase 11: Convergence
 
-- [ ] T074 [CRITICAL] Resolve the G2 sequencing conflict for active overrides in TestApp/packages/local/theme-classic-modern/sass/var/. Record an explicit approved demo-only G2 exception with reviewer, scope, and date, or restore the empty derived theme until G2 passes. Recapture and validate retained changes per Constitution III, plan G2, and T046–T047 (contradicts).
+- [X] T074 [CRITICAL] Resolve the G2 sequencing conflict for active overrides in TestApp/packages/local/theme-classic-modern/sass/var/. Record an explicit approved demo-only G2 exception with reviewer, scope, and date, or restore the empty derived theme until G2 passes. Recapture and validate retained changes per Constitution III, plan G2, and T046–T047 (contradicts). **Evidence**: The project owner approved the demo-only exception on 2026-10-21. It permits T046 paint work in `TestApp` only and keeps Classic as the geometry and behavior reference. The T086 Modernized comparison passed CSS and behavior in 336/336 captures and found no component-geometry differences. Layout-counter differences, unstable original-repeat evidence, and unreviewed screenshots keep G2 and G3 acceptance blocked. See [approved exception](evidence/approved-exceptions.md) and [fresh comparison](../../artifacts/compatibility/t074-demo-exception-recapture-20261021b/development/modernized-vs-original-recapture.json).
 
 ## Phase 12: Convergence
 
