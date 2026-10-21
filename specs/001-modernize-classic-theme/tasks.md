@@ -148,7 +148,7 @@ Accept the group before starting the next group. G2 and US3 are mandatory prereq
 
 ### Tests and Review Controls
 
-- [ ] T043 [P] [US4] Extend `tests/compatibility/compare.test.mjs` with modernization cases. Reject missing goal approval, stale baseline hashes, out-of-order groups, an unaccepted previous group, unapproved paint properties, failed rollback, and any protected-property or behavior difference despite visual approval.
+- [X] T043 [P] [US4] Extend `tests/compatibility/compare.test.mjs` with modernization cases. Reject missing goal approval, stale baseline hashes, out-of-order groups, an unaccepted previous group, unapproved paint properties, failed rollback, and any protected-property or behavior difference despite visual approval. The added checks pass.
 - [ ] T044 [US4] Implement approved-group comparison in `tests/compatibility/compare.mjs` and `tests/compatibility/report.mjs`. Require immutable original references, matching `approvals.json`, modernized and rollback captures, per-case goals, and separate approved modernized references. Keep original, actual, and difference images. Do not auto-approve screenshots or erase prior failures.
 - [X] T045 [US4] Record approved goals for required surface families in `artifacts/compatibility/theme-modern-demo-20261021/approvals.json`. Include components, variables and generated-rule impact, palette and semantic-color constraints, risk, tests, rollback, reviewer, scope, and date. The project owner approved the demo-only goal in this conversation. This does not approve production use or screenshots.
 
