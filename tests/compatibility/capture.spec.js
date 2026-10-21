@@ -706,6 +706,8 @@ test('captures versioned compatibility evidence', async ({ browser }, testInfo) 
                     await page.waitForFunction(() => Array.from(document.images).every((image) => image.complete), null, { timeout: 30000 });
                     await waitForStableFrames(page, comparisonCase);
                     const actualState = await observeCaptureState(page, comparisonCase, state);
+                    // Read layout counters before style collection and screenshots can trigger more work.
+                    const layout = await layoutObservation(page, cdp, beforeMetrics);
 
                     const targets = await resolveTargets(page, comparisonCase);
                     const geometryTargets = Object.fromEntries(targets.map((target) => [target.targetId, target.geometry]));
@@ -729,7 +731,6 @@ test('captures versioned compatibility evidence', async ({ browser }, testInfo) 
                     await evidence.assertCapturePathAvailable(screenshotFile);
                     await fs.writeFile(screenshotFile, screenshotBuffer, { flag: 'wx' });
 
-                    const layout = await layoutObservation(page, cdp, beforeMetrics);
                     const captureRelative = path.join(inputs.buildMode, inputs.themeRole, variant.id, comparisonCase.caseId, state, 'capture.json');
                     const captureFile = path.join(repositoryRoot, 'artifacts', 'compatibility', inputs.runId, captureRelative);
                     await evidence.assertCapturePathAvailable(captureFile);
