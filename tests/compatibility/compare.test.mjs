@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { compareCaptures, assertStableOriginal, preserveFailures } from './compare.mjs';
+import * as comparison from './compare.mjs';
+import { createHash } from 'node:crypto';
 import { encodeRgbaPng, comparePngBuffers } from './png.mjs';
+
+const { compareCaptures, assertStableOriginal, preserveFailures } = comparison;
 
 const screenshot = encodeRgbaPng(2, 1, Buffer.from([
     255, 255, 255, 255,
@@ -23,6 +26,83 @@ function capture(overrides = {}) {
         interactions: { expected: { clicked: true }, actual: { clicked: true }, missingAssets: [], pageErrors: [] },
         diagnostics: { screenshotSha256: '1'.repeat(64), layoutObservation: { sufficient: true, method: 'test-fixture', scope: 'fixture', observedWork: { layoutPasses: 1 }, limitations: [] } },
         ...overrides
+    };
+}
+
+const baselineHashes = { 'theme.scss': 'a'.repeat(64) };
+const modernizedScreenshot = encodeRgbaPng(2, 1, Buffer.from([
+    255, 255, 255, 255,
+    35, 72, 110, 255
+]));
+
+function modernizationFixture(overrides = {}) {
+    const original = capture();
+    const currentBaselineHashes = overrides.baselineHashes || baselineHashes;
+    const modernized = capture({
+        packageName: 'theme-classic-modern',
+        themeRole: 'modernized',
+        computedStyles: {
+            button: { ...original.computedStyles.button, 'background-image': 'none' }
+        },
+        ...overrides.modernized
+    });
+    const rollback = capture({ packageName: 'theme-classic', themeRole: 'rollback', ...overrides.rollback });
+    const group = {
+        schemaVersion: 1,
+        changeId: 'surfaces-1',
+        sequence: 1,
+        visualGoal: 'Reduce button surface gloss.',
+        affectedCases: ['buttons-and-toolbars'],
+        variableChanges: ['button background gradient'],
+        ruleChanges: [],
+        assetChanges: [],
+        riskAssessment: 'Paint only.',
+        testMethod: 'Compare the original, modernized, and rollback screenshots and records.',
+        rollbackMethod: 'Restore the original Sass variable values.',
+        approval: {
+            reviewer: 'Project owner',
+            scope: 'Demo button surfaces.',
+            date: '2026-10-21T06:08:06Z',
+            sourceHashes: baselineHashes,
+            allowedProperties: ['background-image'],
+            ...overrides.approval
+        },
+        evidenceIds: ['goal-approval-1'],
+        status: 'approved',
+        sourceHashes: baselineHashes,
+        ...overrides.group
+    };
+    const approvedModernizedReference = overrides.approvedModernizedReference === null ? null : {
+        status: 'approved',
+        reviewer: 'Project owner',
+        date: '2026-10-21T06:08:06Z',
+        sourceHashes: baselineHashes,
+        screenshotSha256: createHash('sha256').update(modernizedScreenshot).digest('hex'),
+        ...overrides.approvedModernizedReference
+    };
+    const layoutObservation = {
+        sufficient: true,
+        method: 'fixture-counter',
+        scope: 'button',
+        observedWork: { original: { layoutPasses: 1 }, candidate: { layoutPasses: 1 } },
+        limitations: []
+    };
+    return {
+        original,
+        modernized,
+        rollback,
+        changeGroup: group,
+        baselineHashes: currentBaselineHashes,
+        previousGroups: overrides.previousGroups || [],
+        approvedModernizedReference,
+        referencePng: screenshot,
+        modernizedPng: modernizedScreenshot,
+        rollbackPng: screenshot,
+        approvedReferencePng: modernizedScreenshot,
+        layoutObservation,
+        rollbackLayoutObservation: layoutObservation,
+        caseDefinition: { protectedProperties: ['width', 'height'] },
+        coverageComplete: true
     };
 }
 
@@ -150,6 +230,74 @@ test('rejects matching interaction failures in both theme captures', async () =>
         layoutObservation: failed.diagnostics.layoutObservation
     });
     assert.equal(result.behavior.status, 'fail');
+});
+
+test('requires an approved visual goal before comparing a modernized group', async () => {
+    const input = modernizationFixture({ group: { status: 'proposed' } });
+    const result = await comparison.compareModernizedGroup(input);
+    assert.equal(result.status, 'blocked');
+    assert.match(result.validation.reasons.join(' '), /approved goal/);
+});
+
+test('rejects stale baseline hashes and an out-of-order group', async () => {
+    const stale = modernizationFixture({ baselineHashes: { 'theme.scss': 'b'.repeat(64) } });
+    const staleResult = await comparison.compareModernizedGroup(stale);
+    assert.equal(staleResult.status, 'blocked');
+    assert.match(staleResult.validation.reasons.join(' '), /stale baseline/);
+
+    const outOfOrder = modernizationFixture({
+        group: { sequence: 2 },
+        previousGroups: [{ changeId: 'surfaces-0', sequence: 1, status: 'implemented' }]
+    });
+    const orderResult = await comparison.compareModernizedGroup(outOfOrder);
+    assert.equal(orderResult.status, 'blocked');
+    assert.match(orderResult.validation.reasons.join(' '), /previous group/);
+});
+
+test('rejects unapproved paint properties and missing reviewer-approved references', async () => {
+    const unapproved = modernizationFixture({
+        approval: { allowedProperties: ['background-image', 'width'] }
+    });
+    const propertyResult = await comparison.compareModernizedGroup(unapproved);
+    assert.equal(propertyResult.status, 'failed');
+    assert.match(propertyResult.validation.reasons.join(' '), /unapproved paint property/);
+
+    const noReference = modernizationFixture({ approvedModernizedReference: null, approvedReferencePng: null });
+    const referenceResult = await comparison.compareModernizedGroup(noReference);
+    assert.equal(referenceResult.status, 'blocked');
+    assert.match(referenceResult.validation.reasons.join(' '), /approved modernized reference/);
+});
+
+test('requires a passing rollback and keeps protected or behavior failures visible', async () => {
+    const badRollback = modernizationFixture({
+        rollback: {
+            geometry: { button: { rect: { x: 10.25, y: 20, width: 101, height: 24 } } }
+        }
+    });
+    const rollbackResult = await comparison.compareModernizedGroup(badRollback);
+    assert.equal(rollbackResult.rollback.geometry.status, 'fail');
+    assert.notEqual(rollbackResult.status, 'passed');
+
+    const badProtected = modernizationFixture({
+        modernized: {
+            geometry: { button: { rect: { x: 10.25, y: 20, width: 101, height: 24 } } },
+            computedStyles: { button: { width: '101px', height: '24px', color: 'rgb(0, 0, 0)', background: 'rgb(255, 255, 255)', 'background-image': 'none' } },
+            interactions: { expected: { clicked: true }, actual: { clicked: false }, missingAssets: [], pageErrors: [] }
+        }
+    });
+    const protectedResult = await comparison.compareModernizedGroup(badProtected);
+    assert.equal(protectedResult.modernized.geometry.status, 'fail');
+    assert.equal(protectedResult.modernized.behavior.status, 'fail');
+});
+
+test('validates an approved group without accepting it automatically', async () => {
+    const input = modernizationFixture();
+    const result = await comparison.compareModernizedGroup(input);
+    assert.equal(result.status, 'validated');
+    assert.equal(result.modernized.css.status, 'pass');
+    assert.equal(result.modernized.visual.status, 'pass');
+    assert.equal(result.rollback.visual.status, 'pass');
+    assert.equal(input.changeGroup.status, 'approved');
 });
 
 test('rejects unstable originals and retains earlier failures across reruns', () => {
