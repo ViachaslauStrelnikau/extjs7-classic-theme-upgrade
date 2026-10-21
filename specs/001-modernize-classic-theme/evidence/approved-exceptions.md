@@ -60,3 +60,21 @@ Do not change application JavaScript or existing CSS to roll back.
 
 This exception does not amend the constitution or specification.
 It does not pass G0, accept a production baseline, approve production use, or permit a production compatibility claim.
+
+## T084 Toolbar Approval
+
+On 2026-10-21, the project owner approved a demo-only change to the toolbar container.
+
+**Reviewer**: Project owner (user approval in this conversation)
+**Scope**: TestApp only. Set $toolbar-background-gradient to dynamic('none') in
+TestApp/packages/local/theme-classic-modern/sass/var/toolbar/Toolbar.scss. Keep the inherited
+$toolbar-background-color. Change no other toolbar variable or paint property. Do not extend
+this approval to production or other components.
+**Allowed property**: background-image
+**Evidence ID**: approved-t084-toolbar-demo-20261021
+
+Compare toolbar states, geometry, computed styles, existing CSS, interactions, screenshots,
+clipping, and rollback against ext-theme-classic. Keep G0, G1, G2, and G3 blocked when required
+evidence is missing or incomplete. Production checks remain skipped under the prior approval.
+
+**Rollback**: Remove the toolbar Sass variable file, select ext-theme-classic, then rebuild.
