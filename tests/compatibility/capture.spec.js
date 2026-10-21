@@ -57,6 +57,35 @@ async function navigateToCase(page, baseUrl, caseId) {
         sections.setActiveTab(section);
     }, sectionByCase[caseId]);
 
+    await page.waitForFunction((componentXtype) => {
+        const main = Ext.ComponentQuery.query('app-main')[0];
+        const compatibilityTab = main?.items?.items.find((item) => item.itemId === 'compatibility-lab-tab');
+        const sections = compatibilityTab?.down('tabpanel');
+        const section = sections?.items?.items.find((item) => item.getXType() === componentXtype);
+        const navigationTabsReady = Boolean(main?.items?.items.length)
+            && main.items.items.every((item) => {
+                const node = item.tab?.el?.dom;
+                if (!item.tab?.rendered || !node || node.getClientRects().length === 0) return false;
+                const rect = node.getBoundingClientRect();
+                return rect.width > 0 && rect.height > 0 && node.textContent.includes(item.title);
+            });
+        const panel = Ext.ComponentQuery.query('[itemId="compatibility-collapsible-panel"]')[0];
+        const tabs = Ext.ComponentQuery.query('[itemId="compatibility-inner-tabs"]')[0];
+        const toolbar = Ext.ComponentQuery.query('[itemId="compatibility-toolbar"]')[0];
+        const toolbarText = toolbar?.items?.items.find((item) => item.text === 'Toolbar text fixture');
+        const controlsStateReady = componentXtype !== 'compatibility-controls'
+            || (panel?.rendered && !panel.getCollapsed()
+                && panel.body?.el?.dom?.textContent.includes('This panel supports collapse and expand checks.')
+                && tabs?.rendered && tabs.getActiveTab()?.itemId === 'compatibility-first-tab'
+                && tabs.getActiveTab()?.el?.dom?.textContent.includes('First tab content.')
+                && toolbarText?.rendered && toolbarText.el?.dom?.getClientRects().length > 0);
+        return main?.getActiveTab() === compatibilityTab
+            && sections?.getActiveTab() === section
+            && section?.rendered
+            && navigationTabsReady
+            && controlsStateReady;
+    }, sectionByCase[caseId], { timeout: 60000 });
+
     await page.evaluate(async () => {
         await document.fonts.ready;
         await Promise.all(Array.from(document.images, (image) => image.decode().catch(() => undefined)));
@@ -83,6 +112,11 @@ async function setCaptureState(page, comparisonCase, state) {
         switch (caseId) {
             case 'buttons-and-toolbars': {
                 const button = component('compatibility-normal-button');
+                const panel = component('compatibility-collapsible-panel');
+                const tabs = component('compatibility-inner-tabs');
+                if (!panel || panel.getCollapsed() || tabs?.getActiveTab()?.itemId !== 'compatibility-first-tab') {
+                    throw new Error('The controls section did not reach its default expanded panel and first-tab state.');
+                }
                 if (stateName === 'pressed') component('compatibility-toggle-button').toggle(true);
                 if (stateName === 'disabled') component('compatibility-disabled-button').setDisabled(true);
                 if (stateName === 'focused') return returnComponent('compatibility-normal-button', 'focus');
@@ -382,6 +416,132 @@ function verifyStylesheetHashes(stylesheets, manifest, baseUrl) {
     });
 }
 
+function visibleTextAnchors(caseId, state) {
+    switch (caseId) {
+        case 'buttons-and-toolbars':
+            return ['Toolbar action', 'Toolbar text fixture', 'No action', 'This panel supports collapse and expand checks.', 'First tab content.'];
+        case 'panels-and-headers':
+            return state === 'expanded'
+                ? ['Collapsible panel fixture', 'This panel supports collapse and expand checks.', 'First tab content.']
+                : ['Collapsible panel fixture', 'First tab content.'];
+        case 'tabs':
+            return [state === 'selected' || state === 'focused'
+                ? 'Second tab content with a longer label.'
+                : 'First tab content.'];
+        case 'grids':
+            return ['Compatibility grid', 'Compatibility tree'];
+        case 'trees':
+            return ['Compatibility tree', 'Group A'];
+        case 'forms-and-validation':
+            return ['Form fixture', 'Required value'];
+        case 'menus-and-submenus':
+            return ['Required value', 'Open menu'];
+        case 'windows-and-dialogs':
+            return state === 'modal'
+                ? ['Compatibility window', 'Compatibility dialog']
+                : ['Compatibility window', 'Window and dialog fixture content.'];
+        case 'tooltips-and-floating-elements':
+            if (state === 'visible') return ['Compatibility tooltip fixture'];
+            if (state === 'edge-positioned') return ['Choice', 'Beta'];
+            return ['Show tooltip', 'Choice'];
+        case 'scrollable-containers':
+            return ['Scrollable container fixture'];
+        default:
+            throw new Error(`No painted-text anchors are defined for ${caseId}.`);
+    }
+}
+
+async function capturePaintedScreenshot(page, comparisonCase, state, dpr, decodePng) {
+    const anchors = visibleTextAnchors(comparisonCase.caseId, state);
+    const deadline = Date.now() + 15000;
+    let screenshotBuffer;
+    let screenshot;
+    let attempts = 0;
+    let missing = anchors;
+
+    while (Date.now() < deadline) {
+        attempts += 1;
+        screenshotBuffer = await page.screenshot({ fullPage: false, scale: 'device' });
+        screenshot = decodePng(screenshotBuffer);
+        const textRegions = await page.evaluate((expectedTexts) => expectedTexts.map((text) => {
+            const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+            let node;
+            while ((node = walker.nextNode())) {
+                const start = node.nodeValue.indexOf(text);
+                if (start < 0) continue;
+                const parent = node.parentElement;
+                if (!parent) continue;
+                let visible = true;
+                for (let current = parent; current && current !== document.body; current = current.parentElement) {
+                    const style = getComputedStyle(current);
+                    if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) {
+                        visible = false;
+                        break;
+                    }
+                }
+                if (!visible) continue;
+                const range = document.createRange();
+                range.setStart(node, start);
+                range.setEnd(node, start + text.length);
+                const rects = Array.from(range.getClientRects())
+                    .filter((rect) => rect.width > 0 && rect.height > 0)
+                    .map((rect) => ({ x: rect.x, y: rect.y, width: rect.width, height: rect.height }));
+                if (rects.length) return { text, rects };
+            }
+            return { text, rects: [] };
+        }), anchors);
+
+        missing = textRegions.filter((region) => !region.rects.length || !regionHasPaintedInk(screenshot, region.rects, dpr))
+            .map((region) => region.text);
+        if (!missing.length) {
+            return {
+                buffer: screenshotBuffer,
+                image: screenshot,
+                observation: {
+                    method: 'PNG pixel sampling inside visible fixture text ranges across requestAnimationFrame',
+                    attempts,
+                    paintedTextAnchors: anchors
+                }
+            };
+        }
+        await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
+    }
+
+    throw new Error(`Fixture text did not paint before capture: ${missing.join(', ')}.`);
+}
+
+function regionHasPaintedInk(image, rects, dpr) {
+    for (const rect of rects) {
+        const left = Math.max(0, Math.floor(rect.x * dpr));
+        const top = Math.max(0, Math.floor(rect.y * dpr));
+        const right = Math.min(image.width, Math.ceil((rect.x + rect.width) * dpr));
+        const bottom = Math.min(image.height, Math.ceil((rect.y + rect.height) * dpr));
+        const colorCounts = new Map();
+        for (let y = top; y < bottom; y += 1) {
+            for (let x = left; x < right; x += 1) {
+                const offset = (y * image.width + x) * 4;
+                const key = `${image.rgba[offset]},${image.rgba[offset + 1]},${image.rgba[offset + 2]}`;
+                colorCounts.set(key, (colorCounts.get(key) || 0) + 1);
+            }
+        }
+        const background = Array.from(colorCounts.entries()).sort((first, second) => second[1] - first[1])[0]?.[0];
+        if (!background) continue;
+        const [red, green, blue] = background.split(',').map(Number);
+        let inkPixels = 0;
+        for (let y = top; y < bottom; y += 1) {
+            for (let x = left; x < right; x += 1) {
+                const offset = (y * image.width + x) * 4;
+                const difference = Math.abs(image.rgba[offset] - red)
+                    + Math.abs(image.rgba[offset + 1] - green)
+                    + Math.abs(image.rgba[offset + 2] - blue);
+                if (difference >= 80) inkPixels += 1;
+            }
+        }
+        if (inkPixels > 0) return true;
+    }
+    return false;
+}
+
 async function waitForStableFrames(page, comparisonCase) {
     const selectors = comparisonCase.targetElements.map((target) => target.componentQuery || target.domSelector);
     return page.evaluate((targetSelectors) => new Promise((resolve, reject) => {
@@ -412,14 +572,36 @@ async function waitForStableFrames(page, comparisonCase) {
                 const rect = element.getBoundingClientRect();
                 return [rect.x, rect.y, rect.width, rect.height, element.clientWidth, element.clientHeight, element.scrollWidth, element.scrollHeight];
             });
-            const current = JSON.stringify(signature);
+            const main = Ext.ComponentQuery.query('app-main')[0];
+            const navigation = main?.items?.items.map((item) => {
+                const element = item.tab?.el?.dom;
+                if (!element) return [item.itemId || item.title, false];
+                const rect = element.getBoundingClientRect();
+                return [item.itemId || item.title, true, element.className, element.textContent,
+                    rect.x, rect.y, rect.width, rect.height, element.clientWidth, element.clientHeight];
+            }) || [];
+            // Viewport screenshots include sibling components, so wait for the full visible Ext JS tree.
+            const visibleComponents = Ext.ComponentQuery.query('*')
+                .filter((component) => component.rendered && component.el?.dom?.getClientRects().length)
+                .map((component) => {
+                    const element = component.el.dom;
+                    const rect = element.getBoundingClientRect();
+                    return [component.getXType(), component.itemId || '', element.className, element.textContent,
+                        rect.x, rect.y, rect.width, rect.height, element.clientWidth, element.clientHeight,
+                        element.scrollWidth, element.scrollHeight];
+                });
+            const current = JSON.stringify({ targetGeometry: signature, navigation, visibleComponents });
             if (activeAnimationCount === 0 && current === previous) stableFrames += 1;
             else stableFrames = 0;
             if (stableFrames >= 3) {
                 resolve({
                     animationManagerAvailable: Boolean(animationManager?.items),
                     activeAnimationCount,
-                    stableFrames
+                    stableFrames,
+                    visibleComponentCount: visibleComponents.length,
+                    navigationTabCount: navigation.length,
+                    method: 'Ext.fx.Manager.items.length and full visible Ext JS component and navigation geometry and text across requestAnimationFrame',
+                    limitations: ['This check observes DOM geometry and text, not rendered pixels or unmanaged CSS animations.']
                 });
             }
             else if (performance.now() > deadline) reject(new Error('Target measurements did not stabilize across consecutive animation frames.'));
@@ -736,8 +918,9 @@ test('captures versioned compatibility evidence', async ({ browser }, testInfo) 
                     for (const check of stylesheetHashChecks.filter((item) => !item.matches)) {
                         missingAssets.add(`${check.url} (stylesheet hash does not match the build manifest)`);
                     }
-                    const screenshotBuffer = await page.screenshot({ fullPage: false, scale: 'device' });
-                    const screenshot = decodePng(screenshotBuffer);
+                    const screenshotCapture = await capturePaintedScreenshot(page, comparisonCase, state, actualDpr, decodePng);
+                    const screenshotBuffer = screenshotCapture.buffer;
+                    const screenshot = screenshotCapture.image;
                     if (screenshot.width !== variant.viewport.width * actualDpr
                         || screenshot.height !== variant.viewport.height * actualDpr) {
                         throw new Error(`Screenshot dimensions ${screenshot.width}x${screenshot.height} do not match viewport ${variant.viewport.width}x${variant.viewport.height} at DPR ${actualDpr}.`);
@@ -783,17 +966,10 @@ test('captures versioned compatibility evidence', async ({ browser }, testInfo) 
                             initialRendering: { complete: true, fontStatus: await page.evaluate(() => document.fonts.status) },
                             measurementBoundary: {
                                 description: 'Layout counters start after initial case rendering is stable and before the target state action.',
-                                readinessObservation: {
-                                    ...initialReadinessObservation,
-                                    method: 'Ext.fx.Manager.items.length and target geometry across requestAnimationFrame',
-                                    limitations: ['This check tracks Ext JS managed animations only.']
-                                }
+                                readinessObservation: initialReadinessObservation
                             },
-                            readinessObservation: {
-                                ...readinessObservation,
-                                method: 'Ext.fx.Manager.items.length and target geometry across requestAnimationFrame',
-                                limitations: ['This check tracks Ext JS managed animations only.']
-                            },
+                            readinessObservation,
+                            paintReadiness: screenshotCapture.observation,
                             layoutObservation: layout
                         }
                     };
