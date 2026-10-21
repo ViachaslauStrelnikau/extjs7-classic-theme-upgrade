@@ -15,7 +15,10 @@ Ext.define('TestApp.view.main.Main', {
 
         'TestApp.view.main.MainController',
         'TestApp.view.main.MainModel',
-        'TestApp.view.main.List'
+        'TestApp.view.main.List',
+        'TestApp.view.compatibility.Controls',
+        'TestApp.view.compatibility.DataViews',
+        'TestApp.view.compatibility.FormsAndFloats'
     ],
 
     controller: 'main',
@@ -99,5 +102,22 @@ Ext.define('TestApp.view.main.Main', {
         bind: {
             html: '{loremIpsum}'
         }
+    }, {
+        title: 'Compatibility Lab',
+        itemId: 'compatibility-lab-tab',
+        iconCls: 'fa-check-circle',
+        cls: 'compatibility-lab',
+        layout: 'fit',
+        items: [{
+            xtype: 'tabpanel',
+            itemId: 'compatibility-lab-sections',
+            items: [{
+                xtype: 'compatibility-controls'
+            }, {
+                xtype: 'compatibility-data-views'
+            }, {
+                xtype: 'compatibility-forms-floats'
+            }]
+        }]
     }]
 });

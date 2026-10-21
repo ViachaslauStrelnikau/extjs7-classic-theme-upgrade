@@ -1,0 +1,59 @@
+/* Shared legacy CSS fixtures. Keep these rules identical for both themes. */
+.compatibility-lab .x-btn {
+    color: #173b5c;
+}
+
+.compatibility-lab .compatibility-controls .x-toolbar .x-btn {
+    color: #244f70;
+}
+
+.compatibility-lab .compatibility-controls .x-btn.x-btn-over .x-btn-inner {
+    color: #7a3e12;
+}
+
+.compatibility-lab .compatibility-controls .x-btn.x-btn-focus .x-btn-inner {
+    color: #6b2f75;
+}
+
+.compatibility-lab .compatibility-controls .x-btn.x-btn-pressed .x-btn-inner {
+    color: #145c36;
+}
+
+.compatibility-lab .compatibility-controls .x-btn.x-btn-disabled .x-btn-inner {
+    color: #666666;
+}
+
+.compatibility-lab .x-tab-active .x-tab-inner {
+    color: #173b5c;
+}
+
+.compatibility-lab .x-grid-item-selected .x-grid-cell {
+    background-color: #dceaf5;
+    color: #173b5c;
+}
+
+.compatibility-lab .x-form-invalid-field {
+    border-color: #a32828;
+}
+
+.compatibility-lab .x-form-field-readonly {
+    background-color: #f0f2f4;
+}
+
+.compatibility-lab .x-panel-header .x-title-text {
+    color: #244f70;
+}
+
+.x-menu-item-active .x-menu-item-text {
+    color: #7a3e12;
+}
+
+.x-window-header .x-title-text {
+    color: #244f70;
+}
+
+.compatibility-lab .x-panel-header::before {
+    content: 'compatibility-fixture';
+    display: none;
+    color: #173b5c;
+}
