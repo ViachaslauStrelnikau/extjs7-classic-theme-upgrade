@@ -1,6 +1,6 @@
 # Implementation Plan: Drop-in Classic Theme Modernization
 
-**Branch**: `001-modernize-classic-theme` (feature context; no Git repository is present)
+**Branch**: `master` (repository commit `5fe483e`; feature context `001-modernize-classic-theme`)
 **Date**: 2026-10-20 | **Spec**: [spec.md](spec.md)
 **Input**: `specs/001-modernize-classic-theme/spec.md`
 **Status**: Phase 0 research and Phase 1 design complete. No runtime gate has passed.
@@ -37,8 +37,9 @@ Record the exact version in the lockfile and run manifests.
 **Storage**: JSON measurements, PNG images, build logs, traces, and Markdown reports. No database.
 
 **Testing**: Four Playwright projects: Chromium and Firefox, each at device pixel ratio (DPR) 1 and 2.
-Use exact geometry comparisons and reviewed image comparisons.
-The test dependency and scripts are planned. They do not exist yet.
+Use exact geometry comparisons and reviewed image comparisons. Capture both configured viewports.
+Playwright Test 1.64.1 and the root capture, compare, and report scripts are installed.
+The original demo capture completed in development. This does not pass production acceptance.
 
 **Target Platform**: Fixed Windows host and fonts. One browser mode per reference set.
 Use viewport 1280 × 900 CSS pixels and resize case 900 × 1280.
@@ -74,7 +75,7 @@ This is a design review. It does not waive execution gates.
 | Gate | Required evidence | Current status |
 | --- | --- | --- |
 | G0: Production inputs | Actual CSS and order, theme parent chain, component and state inventory | BLOCKED: inputs absent |
-| G1: Original build | Standard Cmd metadata, successful build, stable original captures | NOT RUN; metadata and Fashion failure need investigation |
+| G1: Original build | Standard Cmd metadata, successful build, stable original captures | PARTIAL; one development capture is complete, repeat and production runs are pending |
 | G2: Derived baseline | G0 and G1 pass; empty derived theme matches all required cases | NOT RUN; acceptance blocked by G0 |
 | G3: Change group | G2 passes; approved goal; relevant regressions pass | BLOCKED until G2 passes |
 | G4: Release and rollback | Complete acceptance evidence and successful rollback | NOT RUN |
@@ -138,7 +139,10 @@ Do not add authored JavaScript overrides. Preserve inherited framework overrides
 ### Phase 0: Research Results
 
 See [research.md](research.md) for evidence and alternatives.
-Use generated custom-package metadata, not the SDK npm metadata layout.
+Use the metadata shape emitted by the installed Cmd theme generator.
+The package has a root `name` field and a nested `sencha` configuration object.
+The SDK `theme-classic` and `theme-neutral` packages use this same shape.
+Keep the generated theme identity initializer. Do not add component override classes.
 Keep Fashion. Start with inherited assets and unchanged palette variables.
 Investigate missing `.sencha` metadata and the recorded Fashion failure before relying on builds.
 Production inputs remain an external dependency. Do not invent them.
@@ -172,10 +176,12 @@ Investigate mode-specific failures before acceptance.
 
 Compare original and replacement builds during the same recorded actions.
 Record initial rendering separately from interaction measurements.
-Identify and verify a supported observation method for each required browser.
-Record layout events or layout passes, timing, and cause where the method provides them.
-Record the method, scope, and limitations with the environment evidence.
-No specific browser API or observation capability is verified by this plan.
+For Chromium, record `Performance.getMetrics` before and after state setup through the Chrome DevTools
+Protocol. Store deltas for `LayoutCount` and `RecalcStyleCount`, plus duration values.
+This reports page totals. It does not identify the component that caused a layout pass.
+For Firefox, record `PerformanceObserver` layout-shift entries. These entries do not measure every
+layout pass. Mark the observation as insufficient and block affected acceptance until a complete
+method is available. Record each method, scope, and limitation with the environment evidence.
 
 Repeat original measurements to establish stable conditions.
 Investigate additional layout work in the replacement.
