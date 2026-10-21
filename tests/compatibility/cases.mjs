@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assertSafeRunId, schemaVersion, sha256File, validateRecord, writeImmutableJson } from './evidence.mjs';
@@ -44,6 +45,7 @@ const caseDefinitions = [
         componentFamily: 'grids',
         fixtureReference: 'TestApp/app/view/compatibility/DataViews.js#compatibility-grid',
         sourcePath: 'TestApp/app/view/compatibility/DataViews.js',
+        sourcePaths: ['TestApp/app/view/compatibility/FixtureData.js'],
         states: ['normal', 'selected', 'focused', 'editing', 'sorted', 'scrolled'],
         targetElements: ['#compatibility-grid', '.x-grid-header-ct', '.x-grid-item', '.x-grid-cell', '.x-grid-cell-editor'],
         actions: ['select-row', 'edit-name-cell', 'reject-empty-name-cell', 'sort-name-column', 'scroll-grid-x', 'scroll-grid-y'],
@@ -80,8 +82,9 @@ const caseDefinitions = [
         componentFamily: 'tabs',
         fixtureReference: 'TestApp/app/view/compatibility/Controls.js#compatibility-inner-tabs',
         sourcePath: 'TestApp/app/view/compatibility/Controls.js',
+        sourcePaths: ['TestApp/app/view/main/Main.js'],
         states: ['normal', 'selected', 'focused'],
-        targetElements: ['#compatibility-inner-tabs', '#compatibility-first-tab', '#compatibility-second-tab', '.x-tab-active'],
+        targetElements: ['#compatibility-inner-tabs', '#compatibility-first-tab', '#compatibility-second-tab', '#compatibility-lab-tab', '.compatibility-lab', '.x-tab-active'],
         actions: ['select-second-tab', 'navigate-tab-keyboard'],
         expectedOutcomes: ['second-tab-active', 'keyboard-focus-moved'],
         legacySelectors: ['.compatibility-lab .x-tab.x-tab-active .x-tab-inner'],
@@ -129,10 +132,10 @@ const caseDefinitions = [
         fixtureReference: 'TestApp/app/view/compatibility/FormsAndFloats.js#compatibility-scroll-container',
         sourcePath: 'TestApp/app/view/compatibility/FormsAndFloats.js',
         states: ['top', 'scrolled-x', 'scrolled-y'],
-        targetElements: ['#compatibility-scroll-container', '.x-scroller'],
+        targetElements: ['#compatibility-scroll-container', '.compatibility-scroll-body', '.x-scroller'],
         actions: ['scroll-container-x', 'scroll-container-y'],
         expectedOutcomes: ['scroll-left-changed', 'scroll-top-changed'],
-        legacySelectors: [],
+        legacySelectors: ['.compatibility-lab .compatibility-scroll-body'],
         pseudoElements: []
     }
 ].map((record) => ({
@@ -148,11 +151,16 @@ const caseDefinitions = [
 export async function createCasesDocument({ runId, sourceRoot = root, timestamp = new Date().toISOString() }) {
     assertSafeRunId(runId);
     const cases = await Promise.all(caseDefinitions.map(async (record) => {
-        const { sourcePath, ...comparisonCase } = record;
+        const { sourcePath, sourcePaths = [], ...comparisonCase } = record;
+        const sourceHashes = await Promise.all([sourcePath, ...sourcePaths]
+            .map((source) => sha256File(path.resolve(sourceRoot, source))));
+        const dataHash = sourceHashes.length === 1
+            ? sourceHashes[0]
+            : createHash('sha256').update(sourceHashes.join('\n')).digest('hex');
         const document = {
             schemaVersion,
             ...comparisonCase,
-            dataHash: await sha256File(path.resolve(sourceRoot, sourcePath))
+            dataHash
         };
         validateRecord('ComparisonCase', document);
         return document;

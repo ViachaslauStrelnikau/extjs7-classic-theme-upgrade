@@ -120,3 +120,48 @@ test('keeps pseudo-element declarations and stylesheet order stable', async ({ p
     expect(legacyIndex).toBeGreaterThan(themeIndex);
     expect(result.cascadeOrder).toBe('external');
 });
+
+test('preserves configured ui, cls, and bodyCls hooks', async ({ page }) => {
+    await openSection(page, 'compatibility-forms-floats');
+    const result = await page.evaluate(() => {
+        const main = Ext.ComponentQuery.query('app-main')[0];
+        const lab = main.items.items.find((item) => item.itemId === 'compatibility-lab-tab');
+        const scrollPanel = Ext.ComponentQuery.query('#compatibility-scroll-container')[0];
+        return {
+            ui: main.ui,
+            uiClass: lab.tab.el.dom.classList.contains('x-tab-navigation'),
+            cls: lab.el.dom.classList.contains('compatibility-lab'),
+            bodyCls: scrollPanel.body.el.dom.classList.contains('compatibility-scroll-body'),
+            bodyStyle: getComputedStyle(scrollPanel.body.el.dom).getPropertyValue('--compatibility-body-class').trim()
+        };
+    });
+
+    expect(result.ui).toBe('navigation');
+    expect(result.uiClass).toBe(true);
+    expect(result.cls).toBe(true);
+    expect(result.bodyCls).toBe(true);
+    expect(result.bodyStyle).toBe('retained');
+});
+
+test('keeps long text and the grid stress case available', async ({ page }) => {
+    await page.setViewportSize({ width: 900, height: 1280 });
+    await openSection(page, 'compatibility-data-views');
+    const gridMetrics = await page.evaluate(() => {
+        const grid = Ext.ComponentQuery.query('#compatibility-grid')[0];
+        const view = grid.getView().el.dom;
+        return {
+            records: grid.getStore().getCount(),
+            columns: grid.headerCt.items.items.length,
+            scrollWidth: view.scrollWidth,
+            clientWidth: view.clientWidth
+        };
+    });
+    expect(gridMetrics.records).toBe(64);
+    expect(gridMetrics.columns).toBe(6);
+    expect(gridMetrics.scrollWidth).toBeGreaterThan(gridMetrics.clientWidth);
+
+    await openSection(page, 'compatibility-controls');
+    const longButton = await componentElement(page, 'compatibility-long-button');
+    await expect(longButton.locator('.x-btn-inner'))
+        .toHaveText('Long button text for clipping and alignment checks');
+});

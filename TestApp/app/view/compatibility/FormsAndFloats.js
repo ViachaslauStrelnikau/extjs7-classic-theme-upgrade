@@ -190,6 +190,7 @@ Ext.define('TestApp.view.compatibility.FormsAndFloats', (function () {
             xtype: 'panel',
             itemId: 'compatibility-scroll-container',
             title: 'Scrollable container fixture',
+            bodyCls: 'compatibility-scroll-body',
             height: 150,
             margin: '12 0 0',
             scrollable: true,

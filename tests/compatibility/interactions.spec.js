@@ -199,14 +199,14 @@ test('grid and tree selection, sorting, editing, scrolling, and keyboard actions
     await page.setViewportSize({ width: 900, height: 1280 });
     await openSection(page, 'compatibility-data-views');
     const grid = await componentElement(page, 'compatibility-grid');
-    await page.getByText('Case 01', { exact: true }).click();
+    const nameCell = grid.locator('.x-grid-item').filter({ hasText: 'Case 01' }).locator('.x-grid-cell').nth(1);
+    await nameCell.click();
     expect(await page.evaluate(() => Ext.ComponentQuery.query('#compatibility-grid')[0].getSelectionModel().hasSelection())).toBe(true);
 
     const nameHeaderId = await page.evaluate(() => Ext.ComponentQuery.query('#compatibility-grid')[0].headerCt.items.items[1].el.dom.id);
     await page.locator(`[id="${nameHeaderId}"]`).click();
     expect(await page.evaluate(() => Ext.ComponentQuery.query('#compatibility-grid')[0].getStore().getSorters().getCount())).toBeGreaterThan(0);
 
-    const nameCell = grid.locator('.x-grid-item').filter({ hasText: 'Case 01' }).locator('.x-grid-cell').nth(1);
     await nameCell.click();
     const editor = page.locator('.x-grid-cell-editor input');
     await expect(editor).toBeVisible();

@@ -66,6 +66,14 @@ Ext.define('TestApp.view.compatibility.DataViews', {
             dataIndex: 'status',
             width: 140,
             sortable: true
+        }, {
+            text: 'Status detail',
+            dataIndex: 'status',
+            width: 180
+        }, {
+            text: 'Name reference',
+            dataIndex: 'name',
+            width: 220
         }],
         plugins: [{
             ptype: 'cellediting',

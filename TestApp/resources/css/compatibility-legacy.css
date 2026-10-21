@@ -3,6 +3,10 @@
     --compatibility-cascade-order: external;
 }
 
+.compatibility-lab .compatibility-scroll-body {
+    --compatibility-body-class: retained;
+}
+
 .compatibility-lab .x-btn .x-btn-inner {
     color: #173b5c;
 }
