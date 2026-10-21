@@ -111,7 +111,6 @@ TestApp/
 ├── app.json
 ├── workspace.json
 ├── build.xml
-├── .sencha/                     # Recover standard metadata before G1.
 ├── app/                         # Shared demo coverage.
 ├── resources/                   # Shared legacy CSS fixtures and fixed data.
 └── packages/local/theme-classic-modern/
@@ -144,7 +143,10 @@ The package has a root `name` field and a nested `sencha` configuration object.
 The SDK `theme-classic` and `theme-neutral` packages use this same shape.
 Keep the generated theme identity initializer. Do not add component override classes.
 Keep Fashion. Start with inherited assets and unchanged palette variables.
-Investigate missing `.sencha` metadata and the recorded Fashion failure before relying on builds.
+Standard Cmd refresh and development and production builds pass without `.sencha` metadata.
+Do not create replacement metadata unless a reproducible Cmd requirement exists.
+The earlier Fashion failure log is missing. Its cause remains unknown.
+See [build recovery evidence](evidence/build-recovery.md).
 Production inputs remain an external dependency. Do not invent them.
 
 ### Phase 1: Design Results
