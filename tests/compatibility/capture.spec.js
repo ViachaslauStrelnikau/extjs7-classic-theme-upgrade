@@ -712,6 +712,8 @@ test('captures versioned compatibility evidence', async ({ browser }, testInfo) 
                         throw new Error(`Actual DPR ${actualDpr} does not match requested DPR ${projectUse.deviceScaleFactor}.`);
                     }
 
+                    // Let initial rendering settle so page startup work does not enter the state-action counters.
+                    const initialReadinessObservation = await waitForStableFrames(page, comparisonCase);
                     if (cdp) beforeMetrics = await cdp.send('Performance.getMetrics');
                     const stateResult = await setCaptureState(page, comparisonCase, state);
                     await page.evaluate(async () => {
@@ -779,6 +781,14 @@ test('captures versioned compatibility evidence', async ({ browser }, testInfo) 
                             loadedManifest,
                             stylesheetHashChecks,
                             initialRendering: { complete: true, fontStatus: await page.evaluate(() => document.fonts.status) },
+                            measurementBoundary: {
+                                description: 'Layout counters start after initial case rendering is stable and before the target state action.',
+                                readinessObservation: {
+                                    ...initialReadinessObservation,
+                                    method: 'Ext.fx.Manager.items.length and target geometry across requestAnimationFrame',
+                                    limitations: ['This check tracks Ext JS managed animations only.']
+                                }
+                            },
                             readinessObservation: {
                                 ...readinessObservation,
                                 method: 'Ext.fx.Manager.items.length and target geometry across requestAnimationFrame',
