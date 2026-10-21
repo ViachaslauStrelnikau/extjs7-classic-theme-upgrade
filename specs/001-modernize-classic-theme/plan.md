@@ -183,7 +183,9 @@ Protocol. Store deltas for `LayoutCount` and `RecalcStyleCount`, plus duration v
 This reports page totals. It does not identify the component that caused a layout pass.
 For Firefox, record `PerformanceObserver` layout-shift entries. These entries do not measure every
 layout pass. Mark the observation as insufficient and block affected acceptance until a complete
-method is available. Record each method, scope, and limitation with the environment evidence.
+method is available. Firefox privileged counters and its WebDriver BiDi profiler need further
+validation before use in this capture suite. See [Firefox layout measurement investigation](evidence/firefox-layout-measurement.md).
+Record each method, scope, and limitation with the environment evidence.
 
 Repeat original measurements to establish stable conditions.
 Investigate additional layout work in the replacement.
