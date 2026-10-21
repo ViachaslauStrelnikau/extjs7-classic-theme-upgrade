@@ -177,7 +177,32 @@ function renderMarkdown(report, rootDir) {
     }
     lines.push('', '## Limitations', '');
     for (const item of report.limitations) lines.push(`- ${item}`);
-    lines.push('');
+    lines.push('', '## Modernization groups', '', '| Group | Sequence | Approval | Comparison |', '| --- | ---: | --- | --- |');
+    const groups = report.modernization?.changeGroups || [];
+    if (groups.length) {
+        for (const group of groups) {
+            lines.push(`| ${group.changeId} | ${group.sequence} | ${group.status} | ${group.comparisonStatus || 'not-run'} |`);
+        }
+    } else {
+        lines.push('| No groups recorded |  |  | blocked |');
+    }
+    lines.push('', '## Modernization case results', '', '| Group | Case | Project | State | Result | Modernized | Rollback | Difference images |', '| --- | --- | --- | --- | --- | --- | --- | --- |');
+    const modernizationResults = report.modernization?.results || [];
+    if (modernizationResults.length) {
+        for (const result of modernizationResults) {
+            const links = [
+                result.modernized?.screenshot?.differencePath,
+                result.rollback?.screenshot?.differencePath
+            ].filter(Boolean).map((file) => {
+                const href = path.relative(path.dirname(report.reportPath), path.resolve(rootDir, 'artifacts', 'compatibility', report.runId, file)).replaceAll(path.sep, '/');
+                return `[${file}](${href})`;
+            }).join('<br>') || 'none';
+            lines.push(`| ${result.changeId} | ${result.caseId} | ${result.project} | ${result.state} | ${result.status} | ${result.modernized?.status || 'blocked'} | ${result.rollback?.status || 'blocked'} | ${links} |`);
+        }
+    } else {
+        lines.push('| No case results recorded |  |  |  | blocked | blocked | blocked | none |');
+    }
+    lines.push('', '');
     return lines.join('\n');
 }
 
@@ -189,7 +214,19 @@ function renderHtml(report, rootDir) {
     const successRows = report.successCriteria.map((item) => `<tr><td>${escapeHtml(item.id)}</td><td>${escapeHtml(item.name)}</td><td>${escapeHtml(item.status)}</td><td>${escapeHtml(item.criteria.join(', '))}</td></tr>`).join('');
     const gates = report.gates.map((gate) => `<li>${escapeHtml(gate.gateId)}: ${escapeHtml(gate.status)}</li>`).join('');
     const limitations = report.limitations.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
-    return `<!doctype html><html lang="en"><meta charset="utf-8"><title>${escapeHtml(report.runId)} compatibility report</title><h1>Compatibility report: ${escapeHtml(report.runId)}</h1><p>Status: ${escapeHtml(report.status)}</p><h2>Acceptance criteria</h2><table><thead><tr><th>ID</th><th>Criterion</th><th>Status</th><th>Evidence</th></tr></thead><tbody>${rows}</tbody></table><h2>Success criteria</h2><table><thead><tr><th>ID</th><th>Criterion</th><th>Status</th><th>Acceptance criteria</th></tr></thead><tbody>${successRows}</tbody></table><h2>Gates</h2><ul>${gates}</ul><h2>Limitations</h2><ul>${limitations}</ul></html>`;
+    const groups = report.modernization?.changeGroups || [];
+    const groupRows = groups.map((group) => `<tr><td>${escapeHtml(group.changeId)}</td><td>${escapeHtml(group.sequence)}</td><td>${escapeHtml(group.status)}</td><td>${escapeHtml(group.comparisonStatus || 'not-run')}</td></tr>`).join('')
+        || '<tr><td colspan="4">No groups recorded; status blocked.</td></tr>';
+    const caseRows = (report.modernization?.results || []).map((result) => {
+        const differenceLink = (role) => {
+            const file = result[role]?.screenshot?.differencePath;
+            if (!file) return '';
+            const href = path.relative(path.dirname(report.reportPath), path.resolve(rootDir, 'artifacts', 'compatibility', report.runId, file)).replaceAll(path.sep, '/');
+            return `<a href="${escapeHtml(href)}">${escapeHtml(role)} difference</a>`;
+        };
+        return `<tr><td>${escapeHtml(result.changeId)}</td><td>${escapeHtml(result.caseId)}</td><td>${escapeHtml(result.project)}</td><td>${escapeHtml(result.state)}</td><td>${escapeHtml(result.status)}</td><td>${escapeHtml(result.modernized?.status || 'blocked')}</td><td>${escapeHtml(result.rollback?.status || 'blocked')}</td><td>${[differenceLink('modernized'), differenceLink('rollback')].filter(Boolean).join('<br>') || 'none'}</td></tr>`;
+    }).join('') || '<tr><td colspan="8">No case results recorded; status blocked.</td></tr>';
+    return `<!doctype html><html lang="en"><meta charset="utf-8"><title>${escapeHtml(report.runId)} compatibility report</title><h1>Compatibility report: ${escapeHtml(report.runId)}</h1><p>Status: ${escapeHtml(report.status)}</p><h2>Acceptance criteria</h2><table><thead><tr><th>ID</th><th>Criterion</th><th>Status</th><th>Evidence</th></tr></thead><tbody>${rows}</tbody></table><h2>Success criteria</h2><table><thead><tr><th>ID</th><th>Criterion</th><th>Status</th><th>Acceptance criteria</th></tr></thead><tbody>${successRows}</tbody></table><h2>Gates</h2><ul>${gates}</ul><h2>Limitations</h2><ul>${limitations}</ul><h2>Modernization groups</h2><table><thead><tr><th>Group</th><th>Sequence</th><th>Approval</th><th>Comparison</th></tr></thead><tbody>${groupRows}</tbody></table><h2>Modernization case results</h2><table><thead><tr><th>Group</th><th>Case</th><th>Project</th><th>State</th><th>Result</th><th>Modernized</th><th>Rollback</th><th>Difference images</th></tr></thead><tbody>${caseRows}</tbody></table></html>`;
 }
 
 export async function createReport({ runId, selectionRunId = null, rootDir = root } = {}) {
@@ -198,6 +235,7 @@ export async function createReport({ runId, selectionRunId = null, rootDir = roo
     const runRoot = path.join(rootDir, 'artifacts', 'compatibility', runId);
     const combined = await safeReadJson(path.join(runRoot, 'results.json')) || { schemaVersion: 1, runId, buildModes: {} };
     const buildModes = combined.buildModes || {};
+    const modernization = await safeReadJson(path.join(runRoot, 'modernization-results.json'));
     let selection = null;
     let selectionError = null;
     if (selectionRunId) {
@@ -223,7 +261,8 @@ export async function createReport({ runId, selectionRunId = null, rootDir = roo
         G3: gateStatus(buildModes, 'G3'),
         G4: gateStatus(buildModes, 'G4')
     };
-    const hasModernized = Object.values(buildModes).some((mode) => (mode?.results || []).some((result) => result.role === 'modernized'));
+    const hasModernized = Boolean(modernization?.changeGroups?.length)
+        || Object.values(buildModes).some((mode) => (mode?.results || []).some((result) => result.role === 'modernized'));
     const results = Object.fromEntries(['development', 'production'].map((mode) => [mode, modeResult(buildModes, mode)]));
     const acceptanceCriteria = criterionNames.map((name, index) => {
         const id = `AC-${String(index + 1).padStart(3, '0')}`;
@@ -245,9 +284,9 @@ export async function createReport({ runId, selectionRunId = null, rootDir = roo
     const limitations = [
         productionInputs?.status === 'verified' ? 'Production inputs are verified for this run.' : 'Production CSS, stylesheet order, theme inheritance, component states, and browser requirements are not verified. G0 is blocked.',
         selectionError ? `Selection evidence is invalid. ${selectionError}` : selection ? 'Selection and rollback evidence passed its manifest checks.' : 'Selection and rollback evidence was not supplied. Do not accept AC-002.',
-        'The browser capture and interaction suites did not run. Do not accept G1 or G2.',
-        'The local browser view was blank. Playwright could not start a browser process in this environment.',
-        'The theme package has no visual changes. Do not claim modernization results.',
+        'CSS compatibility and interaction suites remain incomplete. Do not accept G1 or G2.',
+        'Firefox layout-shift records do not measure every layout pass. Keep affected acceptance blocked.',
+        modernization ? `Modernization comparison status is ${modernization.status || 'blocked'}; see the group and case results below.` : 'Modernization comparison evidence was not supplied for this run.',
         'Demo build results do not prove production compatibility.'
     ];
     const report = {
@@ -256,6 +295,7 @@ export async function createReport({ runId, selectionRunId = null, rootDir = roo
         status: gates.G0 === 'passed' && gates.G1 === 'passed' && gates.G2 === 'passed' && gates.G3 === 'passed' && gates.G4 === 'passed' ? 'passed' : 'blocked',
         gates: Object.entries(gates).map(([gateId, status]) => ({ gateId, status })),
         buildModes: summaryBuildModes,
+        modernization,
         acceptanceCriteria,
         successCriteria: successCriteriaWithStatus,
         limitations,

@@ -94,3 +94,44 @@ test('links selection and rollback evidence to the selected run', async () => {
         await rm(rootDir, { recursive: true, force: true });
     }
 });
+
+test('reports modernization groups, case outcomes, rollback, and difference images', async () => {
+    const rootDir = await mkdtemp(path.join(os.tmpdir(), 'compatibility-modernization-report-'));
+    try {
+        const runId = 'modernization-report';
+        const runRoot = path.join(rootDir, 'artifacts', 'compatibility', runId);
+        await mkdir(runRoot, { recursive: true });
+        await writeFile(path.join(runRoot, 'modernization-results.json'), JSON.stringify({
+            schemaVersion: 1,
+            runId,
+            buildMode: 'development',
+            status: 'blocked',
+            gates: [{ gateId: 'G0', status: 'blocked' }, { gateId: 'G2', status: 'blocked' }, { gateId: 'G3', status: 'blocked' }],
+            errors: [],
+            changeGroups: [{ changeId: 'paint-controls', sequence: 1, status: 'implemented', comparisonStatus: 'blocked' }],
+            results: [{
+                changeId: 'paint-controls', caseId: 'field-text', project: 'chromium-dpr1', state: 'invalid', status: 'blocked',
+                modernized: { status: 'blocked', geometry: { status: 'blocked' }, css: { status: 'blocked' }, behavior: { status: 'blocked' }, visual: { status: 'blocked' }, screenshot: { differencePath: 'differences/development/chromium-dpr1/field-text/invalid/paint-controls-modernized.png' } },
+                rollback: { status: 'failed', geometry: { status: 'pass' }, css: { status: 'fail' }, behavior: { status: 'pass' }, visual: { status: 'fail' }, screenshot: { differencePath: 'differences/development/chromium-dpr1/field-text/invalid/paint-controls-rollback.png' } }
+            }],
+            historicalFailures: []
+        }));
+
+        const result = await createReport({ runId, rootDir });
+        assert.equal(result.report.status, 'blocked');
+        assert.equal(result.report.modernization.changeGroups[0].comparisonStatus, 'blocked');
+        assert.match(result.report.limitations.join(' '), /Modernization comparison status is blocked/);
+        assert.doesNotMatch(result.report.limitations.join(' '), /theme package has no visual changes/i);
+        const markdown = await readFile(result.markdownPath, 'utf8');
+        assert.match(markdown, /paint-controls/);
+        assert.match(markdown, /field-text/);
+        assert.match(markdown, /failed/);
+        assert.match(markdown, /paint-controls-modernized\.png/);
+        assert.match(markdown, /paint-controls-rollback\.png/);
+        const html = await readFile(result.htmlPath, 'utf8');
+        assert.match(html, /Modernization case results/);
+        assert.match(html, /paint-controls-rollback\.png/);
+    } finally {
+        await rm(rootDir, { recursive: true, force: true });
+    }
+});

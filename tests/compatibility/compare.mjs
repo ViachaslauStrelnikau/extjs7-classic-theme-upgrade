@@ -1,8 +1,9 @@
+import { createHash } from 'node:crypto';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { comparePngBuffers } from './png.mjs';
-import { assertSafeRunId, readJson, validateCapturePair, validateRecord, validateSuiteResults } from './evidence.mjs';
+import { assertSafeRunId, readJson, sameHashes, sha256File, validateCapturePair, validateRecord, validateSuiteResults } from './evidence.mjs';
 import { captureVariants } from './matrix.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -226,6 +227,114 @@ export async function compareCaptures(reference, actual, options = {}) {
     };
 }
 
+export async function compareModernizedGroup(options = {}) {
+    const reasons = [];
+    const group = options.changeGroup;
+    let invalidProperty = false;
+    if (!group) {
+        reasons.push('An approved goal is required for a modernization comparison.');
+    } else {
+        try {
+            validateRecord('ChangeGroup', group);
+        } catch (error) {
+            reasons.push(`The change group is invalid. ${error.message}`);
+        }
+        if (!['approved', 'implemented', 'validated', 'accepted'].includes(group.status)) {
+            reasons.push('An approved goal is required before a modernization comparison.');
+        }
+        if (!sameHashes(group.sourceHashes, options.baselineHashes)) {
+            reasons.push('The approval uses stale baseline hashes.');
+        }
+        if (group.sequence > 1) {
+            const previous = (options.previousGroups || []).find((item) => item.sequence === group.sequence - 1);
+            if (previous?.status !== 'accepted') {
+                reasons.push('The previous group must be accepted before this group can run.');
+            }
+        }
+        const allowedProperties = group.approval?.allowedProperties;
+        if (!Array.isArray(allowedProperties) || !allowedProperties.length) {
+            invalidProperty = true;
+            reasons.push('The approved goal does not list allowed paint properties.');
+        } else {
+            const invalid = allowedProperties.filter((property) => typeof property !== 'string' || !allowedPaintPattern.test(property));
+            if (invalid.length) {
+                invalidProperty = true;
+                reasons.push(`The change group includes an unapproved paint property: ${invalid.join(', ')}.`);
+            }
+        }
+    }
+
+    const approvedReference = options.approvedModernizedReference;
+    const approvedPng = options.approvedReferencePng;
+    if (!approvedReference || approvedReference.status !== 'approved' || !approvedReference.reviewer || !approvedReference.date
+        || !sameHashes(approvedReference.sourceHashes, options.baselineHashes) || !approvedPng) {
+        reasons.push('A separate reviewer-approved modernized reference is required.');
+    } else {
+        const approvedHash = createHash('sha256').update(approvedPng).digest('hex');
+        if (approvedReference.screenshotSha256 !== approvedHash) {
+            reasons.push('The approved modernized reference hash is invalid.');
+        }
+    }
+
+    if (!options.rollback || !options.rollbackPng) {
+        reasons.push('A rollback capture is required for a modernization comparison.');
+    }
+
+    const validation = {
+        status: reasons.length ? invalidProperty ? 'failed' : 'blocked' : 'valid',
+        reasons
+    };
+    if (reasons.length) {
+        return { status: validation.status, validation, modernized: null, rollback: null, approvedReference: null };
+    }
+
+    validateCapturePair(options.original, options.modernized);
+    validateCapturePair(options.original, options.rollback);
+    const allowedProperties = group.approval.allowedProperties;
+    const modernized = await compareCaptures(options.original, options.modernized, {
+        phase: 'modernization',
+        approval: { allowedProperties },
+        caseDefinition: options.caseDefinition,
+        referencePng: options.referencePng,
+        actualPng: options.modernizedPng,
+        layoutObservation: options.layoutObservation,
+        coverageComplete: options.coverageComplete,
+        coverageGaps: options.coverageGaps
+    });
+    const rollback = await compareCaptures(options.original, options.rollback, {
+        phase: 'baseline',
+        caseDefinition: options.caseDefinition,
+        referencePng: options.referencePng,
+        actualPng: options.rollbackPng,
+        layoutObservation: options.rollbackLayoutObservation,
+        coverageComplete: options.coverageComplete,
+        coverageGaps: options.coverageGaps
+    });
+    const approvedReferenceComparison = comparePngBuffers(options.approvedReferencePng, options.modernizedPng);
+    modernized.visual = category(approvedReferenceComparison.equal ? 'pass' : 'fail', approvedReferenceComparison.equal ? [] : [{
+        path: 'approvedModernizedReference.screenshot',
+        differingPixels: approvedReferenceComparison.differingPixels,
+        differenceBounds: approvedReferenceComparison.differenceBounds
+    }]);
+    const categories = [modernized, rollback].flatMap((result) => ['geometry', 'css', 'behavior', 'visual'].map((name) => result[name].status));
+    const status = categories.includes('fail') ? 'failed' : categories.includes('blocked') ? 'blocked' : 'validated';
+    return {
+        status,
+        validation,
+        modernized,
+        rollback,
+        approvedReference: {
+            reviewer: approvedReference.reviewer,
+            screenshotSha256: approvedReference.screenshotSha256,
+            comparison: {
+                equal: approvedReferenceComparison.equal,
+                differingPixels: approvedReferenceComparison.differingPixels,
+                differenceBounds: approvedReferenceComparison.differenceBounds
+            }
+        }
+    };
+}
+
 export function assertStableOriginal(original, repeat) {
     const fields = ['geometry', 'computedStyles', 'dom', 'stylesheets', 'interactions'];
     const differences = [];
@@ -254,6 +363,240 @@ export function preserveFailures(previous, current) {
         return categories.filter((name) => result[name]?.status === 'fail').map((name) => ({ caseId, category: name, result: result[name] }));
     });
     return { ...current, historicalFailures: [...oldItems, ...failed] };
+}
+
+function safeEvidenceFile(runRoot, relativePath) {
+    const resolved = path.resolve(runRoot, relativePath);
+    const relative = path.relative(runRoot, resolved);
+    if (!relative || relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+        throw new TypeError(`Evidence path escapes the run directory: ${relativePath}.`);
+    }
+    return resolved;
+}
+
+function pairedLayoutObservation(original, candidate) {
+    const reference = original.diagnostics?.layoutObservation;
+    const actual = candidate.diagnostics?.layoutObservation;
+    const sameMethod = reference?.method === actual?.method && reference?.scope === actual?.scope;
+    return {
+        sufficient: layoutObservationIsSufficient(reference) && layoutObservationIsSufficient(actual) && sameMethod,
+        method: actual?.method || null,
+        scope: actual?.scope || null,
+        observedWork: { original: reference?.observedWork || null, candidate: actual?.observedWork || null },
+        limitations: [...new Set([...(reference?.limitations || []), ...(actual?.limitations || [])])],
+        reason: sameMethod ? actual?.reason || null : 'Reference and candidate observations use different methods or scopes.'
+    };
+}
+
+export async function compareModernizationRun({ runId, buildMode, suiteStage = 'us3' }) {
+    assertSafeRunId(runId);
+    if (!['development', 'production'].includes(buildMode)) {
+        throw new TypeError('buildMode must be development or production.');
+    }
+    const runRoot = path.join(root, 'artifacts', 'compatibility', runId);
+    const errors = [];
+    const comparisonResults = [];
+    const productionInputs = await readJson(path.join(runRoot, 'production-inputs.json')).catch(() => null);
+    const approvals = await readJson(path.join(runRoot, 'approvals.json')).catch((error) => {
+        errors.push(`Approvals are missing. ${error.message}`);
+        return null;
+    });
+    if (approvals && (approvals.schemaVersion !== 1 || approvals.runId !== runId || !Array.isArray(approvals.changeGroups))) {
+        errors.push('Approvals must use schema version 1, match this run, and include change groups.');
+    }
+
+    const casesDocument = await readJson(path.join(runRoot, 'cases.json')).catch((error) => {
+        errors.push(`Cases are missing. ${error.message}`);
+        return null;
+    });
+    const environmentsDocument = await readJson(path.join(runRoot, 'environments.json')).catch((error) => {
+        errors.push(`Environment evidence is missing. ${error.message}`);
+        return null;
+    });
+    const suiteEvidence = await readJson(path.join(runRoot, 'suite-results.json')).catch((error) => {
+        errors.push(`Suite results are missing. ${error.message}`);
+        return null;
+    });
+    let suiteComplete = false;
+    try {
+        validateSuiteResults(suiteStage, suiteEvidence?.suites || []);
+        suiteComplete = true;
+    } catch (error) {
+        errors.push(error.message);
+    }
+    if (!casesDocument || casesDocument.schemaVersion !== 1 || casesDocument.runId !== runId || !Array.isArray(casesDocument.cases)) {
+        errors.push('Cases must use schema version 1 and match this run.');
+    }
+    if (!environmentsDocument || environmentsDocument.schemaVersion !== 1 || environmentsDocument.runId !== runId || !Array.isArray(environmentsDocument.environments)) {
+        errors.push('Environments must use schema version 1 and match this run.');
+    }
+
+    const environments = new Map((environmentsDocument?.environments || []).map((item) => [item.environmentId, item]));
+    const roleNames = ['original', 'original-repeat', 'modernized', 'rollback'];
+    const roleData = new Map();
+    for (const role of roleNames) {
+        const roleRoot = path.join(runRoot, buildMode, role);
+        try {
+            const manifest = await readJson(path.join(roleRoot, 'manifest.json'));
+            validateRecord('ThemeBuild', manifest);
+            const manifestRole = buildRoleForCapture(role);
+            const expectedTheme = role === 'modernized' ? 'theme-classic-modern' : 'ext-theme-classic';
+            if (manifest.themeRole !== manifestRole || manifest.buildMode !== buildMode || manifest.selectedTheme !== expectedTheme || manifest.exitCode !== 0) {
+                throw new Error(`${role} manifest has the wrong theme, role, build mode, or exit code.`);
+            }
+            roleData.set(role, { root: roleRoot, manifest });
+        } catch (error) {
+            errors.push(`${role}: ${error.message}`);
+        }
+    }
+
+    const cases = casesDocument?.cases || [];
+    try {
+        cases.forEach((item) => validateRecord('ComparisonCase', item));
+    } catch (error) {
+        errors.push(`Cases are invalid. ${error.message}`);
+    }
+    const projects = captureVariants.map((variant) => variant.id);
+    const changeGroups = approvals?.changeGroups || [];
+    for (const group of changeGroups) {
+        try {
+            validateRecord('ChangeGroup', group);
+        } catch (error) {
+            errors.push(`${group?.changeId || 'change group'} is invalid. ${error.message}`);
+            continue;
+        }
+        const groupResults = [];
+        const affectedCases = cases.filter((item) => group.affectedCases.includes(item.caseId));
+        if (!affectedCases.length) {
+            errors.push(`${group.changeId} has no matching cases.`);
+        }
+        for (const item of affectedCases) {
+            for (const project of projects) {
+                const variant = captureVariants.find((entry) => entry.id === project);
+                for (const state of item.states) {
+                    const key = [project, item.caseId, state].join('/');
+                    const captures = {};
+                    for (const role of roleNames) {
+                        const capturePath = path.join(runRoot, buildMode, role, project, item.caseId, state, 'capture.json');
+                        captures[role] = await readJson(capturePath).catch((error) => {
+                            errors.push(`${role}/${key}: ${error.message}`);
+                            return null;
+                        });
+                    }
+                    if (Object.values(captures).some((capture) => !capture)) continue;
+
+                    let validCaptures = true;
+                    for (const role of roleNames) {
+                        try {
+                            validateRecord('Capture', captures[role]);
+                            if (captures[role].buildId !== roleData.get(role)?.manifest.buildId) {
+                                throw new Error('Capture build identity does not match its manifest.');
+                            }
+                            const environment = environments.get(captures[role].environmentId);
+                            const expectedBrowser = variant.project.startsWith('firefox-') ? 'firefox' : 'chromium';
+                            const expectedDpr = variant.project.endsWith('dpr2') ? 2 : 1;
+                            if (!environment || environment.buildMode !== buildMode || environment.browserEngine !== expectedBrowser
+                                || environment.actualDpr !== expectedDpr || environment.actualDpr !== captures[role].diagnostics.actualDpr
+                                || environment.viewport.width !== variant.viewport.width || environment.viewport.height !== variant.viewport.height) {
+                                throw new Error('Capture Environment does not match its browser, DPR, viewport, or build mode.');
+                            }
+                        } catch (error) {
+                            errors.push(`${role}/${key}: ${error.message}`);
+                            validCaptures = false;
+                        }
+                    }
+                    if (!validCaptures) continue;
+
+                    const originalPngPath = path.join(runRoot, buildMode, 'original', project, item.caseId, state, 'screenshot.png');
+                    const modernizedPngPath = path.join(runRoot, buildMode, 'modernized', project, item.caseId, state, 'screenshot.png');
+                    const rollbackPngPath = path.join(runRoot, buildMode, 'rollback', project, item.caseId, state, 'screenshot.png');
+                    const referenceRecord = (approvals.approvedReferences || []).find((reference) => reference.changeId === group.changeId
+                        && reference.project === project && reference.caseId === item.caseId && reference.state === state);
+                    let approvedReferencePng = null;
+                    if (referenceRecord?.path) {
+                        try {
+                            approvedReferencePng = await readFile(safeEvidenceFile(runRoot, referenceRecord.path));
+                        } catch (error) {
+                            errors.push(`${group.changeId}/${key}: approved screenshot is missing. ${error.message}`);
+                        }
+                    }
+                    let currentHashes;
+                    try {
+                        currentHashes = Object.fromEntries(await Promise.all(Object.keys(group.sourceHashes).map(async (file) => {
+                            const sourcePath = path.resolve(root, file);
+                            if (!sourcePath.startsWith(`${root}${path.sep}`)) throw new Error(`Unsafe approval source path: ${file}.`);
+                            return [file, await sha256File(sourcePath)];
+                        })));
+                    } catch (error) {
+                        errors.push(`${group.changeId}/${key}: ${error.message}`);
+                        continue;
+                    }
+                    const originalLayout = captures.original.diagnostics?.layoutObservation;
+                    const modernizedLayout = pairedLayoutObservation(captures.original, captures.modernized);
+                    const rollbackLayout = pairedLayoutObservation(captures.original, captures.rollback);
+                    const input = {
+                        original: captures.original,
+                        modernized: captures.modernized,
+                        rollback: captures.rollback,
+                        changeGroup: group,
+                        baselineHashes: currentHashes,
+                        previousGroups: changeGroups.filter((candidate) => candidate.sequence < group.sequence),
+                        approvedModernizedReference: referenceRecord,
+                        referencePng: await readFile(originalPngPath),
+                        modernizedPng: await readFile(modernizedPngPath),
+                        rollbackPng: await readFile(rollbackPngPath),
+                        approvedReferencePng,
+                        layoutObservation: modernizedLayout,
+                        rollbackLayoutObservation: rollbackLayout,
+                        caseDefinition: item,
+                        coverageComplete: suiteComplete,
+                        coverageGaps: suiteComplete ? [] : ['Required CSS and interaction suites are incomplete.']
+                    };
+                    const compared = await compareModernizedGroup(input);
+                    for (const [role, result] of [['modernized', compared.modernized], ['rollback', compared.rollback]]) {
+                        if (result?.screenshot?.differencePng) {
+                            const differencePath = path.join(runRoot, 'differences', buildMode, project, item.caseId, state, `${group.changeId}-${role}.png`);
+                            await mkdir(path.dirname(differencePath), { recursive: true });
+                            await writeFile(differencePath, result.screenshot.differencePng);
+                            result.screenshot.differencePath = path.relative(runRoot, differencePath).replaceAll(path.sep, '/');
+                            delete result.screenshot.differencePng;
+                        }
+                    }
+                    const entry = { changeId: group.changeId, caseId: item.caseId, project, state, ...compared };
+                    comparisonResults.push(entry);
+                    groupResults.push(entry);
+                }
+            }
+        }
+        group.comparisonStatus = groupResults.some((item) => item.status === 'failed') ? 'failed'
+            : groupResults.some((item) => item.status === 'blocked') || !groupResults.length ? 'blocked' : 'validated';
+    }
+
+    const g0 = productionInputs?.status === 'verified' ? 'passed' : 'blocked';
+    const baseline = await readJson(path.join(runRoot, `${buildMode}-results.json`)).catch(() => null);
+    const g2 = baseline?.gates?.find((gate) => gate.gateId === 'G2')?.status || 'blocked';
+    const allValidated = changeGroups.length > 0 && changeGroups.every((group) => group.comparisonStatus === 'validated');
+    const allAccepted = changeGroups.length > 0 && changeGroups.every((group) => group.status === 'accepted');
+    const g3 = g2 === 'passed' && suiteComplete && allValidated && allAccepted ? 'passed' : 'blocked';
+    const prior = await readJson(path.join(runRoot, 'modernization-results.json')).catch(() => null);
+    const historicalFailures = [...(prior?.historicalFailures || []), ...comparisonResults.flatMap((result) => {
+        const categories = ['geometry', 'css', 'behavior', 'visual'];
+        return categories.filter((name) => result.modernized?.[name]?.status === 'fail' || result.rollback?.[name]?.status === 'fail')
+            .map((name) => ({ changeId: result.changeId, caseId: result.caseId, project: result.project, state: result.state, category: name }));
+    })];
+    const output = {
+        schemaVersion: 1,
+        runId,
+        buildMode,
+        status: g3 === 'passed' ? 'passed' : 'blocked',
+        gates: [{ gateId: 'G0', status: g0 }, { gateId: 'G2', status: g2 }, { gateId: 'G3', status: g3 }],
+        errors,
+        changeGroups: changeGroups.map(({ changeId, sequence, status, comparisonStatus }) => ({ changeId, sequence, status, comparisonStatus })),
+        results: comparisonResults,
+        historicalFailures
+    };
+    await writeFile(path.join(runRoot, 'modernization-results.json'), `${JSON.stringify(output, null, 4)}\n`, 'utf8');
+    return output;
 }
 
 export async function compareRun({ runId, buildMode, suiteStage = 'us2' }) {
