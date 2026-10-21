@@ -1,0 +1,92 @@
+Ext.define('TestApp.view.compatibility.FixtureData', {
+    singleton: true,
+
+    rows: [
+        { id: 1, name: 'Case 01', email: 'case01@example.test', status: 'Open' },
+        { id: 2, name: 'Case 02', email: 'case02@example.test', status: 'Closed' },
+        { id: 3, name: 'Case 03', email: 'case03@example.test', status: 'Pending' },
+        { id: 4, name: 'Case 04', email: 'case04@example.test', status: 'Open' },
+        { id: 5, name: 'Case 05', email: 'case05@example.test', status: 'Closed' },
+        { id: 6, name: 'Case 06', email: 'case06@example.test', status: 'Pending' },
+        { id: 7, name: 'Case 07', email: 'case07@example.test', status: 'Open' },
+        { id: 8, name: 'Case 08', email: 'case08@example.test', status: 'Closed' },
+        { id: 9, name: 'Case 09', email: 'case09@example.test', status: 'Pending' },
+        { id: 10, name: 'Case 10', email: 'case10@example.test', status: 'Open' },
+        { id: 11, name: 'Case 11', email: 'case11@example.test', status: 'Closed' },
+        { id: 12, name: 'Case 12', email: 'case12@example.test', status: 'Pending' },
+        { id: 13, name: 'Case 13', email: 'case13@example.test', status: 'Open' },
+        { id: 14, name: 'Case 14', email: 'case14@example.test', status: 'Closed' },
+        { id: 15, name: 'Case 15', email: 'case15@example.test', status: 'Pending' },
+        { id: 16, name: 'Case 16', email: 'case16@example.test', status: 'Open' },
+        { id: 17, name: 'Case 17', email: 'case17@example.test', status: 'Closed' },
+        { id: 18, name: 'Case 18', email: 'case18@example.test', status: 'Pending' },
+        { id: 19, name: 'Case 19', email: 'case19@example.test', status: 'Open' },
+        { id: 20, name: 'Case 20', email: 'case20@example.test', status: 'Closed' },
+        { id: 21, name: 'Case 21', email: 'case21@example.test', status: 'Pending' },
+        { id: 22, name: 'Case 22', email: 'case22@example.test', status: 'Open' },
+        { id: 23, name: 'Case 23', email: 'case23@example.test', status: 'Closed' },
+        { id: 24, name: 'Case 24', email: 'case24@example.test', status: 'Pending' },
+        { id: 25, name: 'Case 25', email: 'case25@example.test', status: 'Open' },
+        { id: 26, name: 'Case 26', email: 'case26@example.test', status: 'Closed' },
+        { id: 27, name: 'Case 27', email: 'case27@example.test', status: 'Pending' },
+        { id: 28, name: 'Case 28', email: 'case28@example.test', status: 'Open' },
+        { id: 29, name: 'Case 29', email: 'case29@example.test', status: 'Closed' },
+        { id: 30, name: 'Case 30', email: 'case30@example.test', status: 'Pending' },
+        { id: 31, name: 'Case 31', email: 'case31@example.test', status: 'Open' },
+        { id: 32, name: 'Case 32', email: 'case32@example.test', status: 'Closed' },
+        { id: 33, name: 'Case 33', email: 'case33@example.test', status: 'Pending' },
+        { id: 34, name: 'Case 34', email: 'case34@example.test', status: 'Open' },
+        { id: 35, name: 'Case 35', email: 'case35@example.test', status: 'Closed' },
+        { id: 36, name: 'Case 36', email: 'case36@example.test', status: 'Pending' },
+        { id: 37, name: 'Case 37', email: 'case37@example.test', status: 'Open' },
+        { id: 38, name: 'Case 38', email: 'case38@example.test', status: 'Closed' },
+        { id: 39, name: 'Case 39', email: 'case39@example.test', status: 'Pending' },
+        { id: 40, name: 'Case 40', email: 'case40@example.test', status: 'Open' },
+        { id: 41, name: 'Case 41', email: 'case41@example.test', status: 'Closed' },
+        { id: 42, name: 'Case 42', email: 'case42@example.test', status: 'Pending' },
+        { id: 43, name: 'Case 43', email: 'case43@example.test', status: 'Open' },
+        { id: 44, name: 'Case 44', email: 'case44@example.test', status: 'Closed' },
+        { id: 45, name: 'Case 45', email: 'case45@example.test', status: 'Pending' },
+        { id: 46, name: 'Case 46', email: 'case46@example.test', status: 'Open' },
+        { id: 47, name: 'Case 47', email: 'case47@example.test', status: 'Closed' },
+        { id: 48, name: 'Case 48', email: 'case48@example.test', status: 'Pending' },
+        { id: 49, name: 'Case 49', email: 'case49@example.test', status: 'Open' },
+        { id: 50, name: 'Case 50', email: 'case50@example.test', status: 'Closed' },
+        { id: 51, name: 'Case 51', email: 'case51@example.test', status: 'Pending' },
+        { id: 52, name: 'Case 52', email: 'case52@example.test', status: 'Open' },
+        { id: 53, name: 'Case 53', email: 'case53@example.test', status: 'Closed' },
+        { id: 54, name: 'Case 54', email: 'case54@example.test', status: 'Pending' },
+        { id: 55, name: 'Case 55', email: 'case55@example.test', status: 'Open' },
+        { id: 56, name: 'Case 56', email: 'case56@example.test', status: 'Closed' },
+        { id: 57, name: 'Case 57', email: 'case57@example.test', status: 'Pending' },
+        { id: 58, name: 'Case 58', email: 'case58@example.test', status: 'Open' },
+        { id: 59, name: 'Case 59', email: 'case59@example.test', status: 'Closed' },
+        { id: 60, name: 'Case 60', email: 'case60@example.test', status: 'Pending' },
+        { id: 61, name: 'Case 61', email: 'case61@example.test', status: 'Open' },
+        { id: 62, name: 'Case 62', email: 'case62@example.test', status: 'Closed' },
+        { id: 63, name: 'Case 63', email: 'case63@example.test', status: 'Pending' },
+        { id: 64, name: 'Case 64', email: 'case64@example.test', status: 'Open' }
+    ],
+
+    treeRoot: {
+        text: 'Compatibility tree',
+        expanded: true,
+        children: [{
+            text: 'Group A',
+            expanded: true,
+            children: [
+                { text: 'Node A1', leaf: true },
+                { text: 'Node A2', leaf: true },
+                { text: 'Node A3', leaf: true }
+            ]
+        }, {
+            text: 'Group B',
+            expanded: true,
+            children: [
+                { text: 'Node B1', leaf: true },
+                { text: 'Node B2', leaf: true },
+                { text: 'Node B3', leaf: true }
+            ]
+        }]
+    }
+});
