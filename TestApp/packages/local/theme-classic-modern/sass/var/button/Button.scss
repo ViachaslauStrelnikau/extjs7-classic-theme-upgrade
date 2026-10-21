@@ -1,0 +1,35 @@
+// Keep the classic blue states while using quieter fills and removing glossy gradients.
+$button-default-background-color: dynamic(#f3f6fa);
+$button-default-background-color-over: dynamic(#e5edf7);
+$button-default-background-color-focus: dynamic(#e5edf7);
+$button-default-background-color-pressed: dynamic(#d5e2f0);
+$button-default-background-color-focus-over: dynamic(#e5edf7);
+$button-default-background-color-focus-pressed: dynamic(#d5e2f0);
+$button-default-background-color-disabled: dynamic(#f5f6f8);
+
+$button-default-background-gradient: dynamic('none');
+$button-default-background-gradient-over: dynamic('none');
+$button-default-background-gradient-focus: dynamic('none');
+$button-default-background-gradient-pressed: dynamic('none');
+$button-default-background-gradient-focus-over: dynamic('none');
+$button-default-background-gradient-focus-pressed: dynamic('none');
+$button-default-background-gradient-disabled: dynamic('none');
+
+$button-toolbar-background-color-over: dynamic(#e5edf7);
+$button-toolbar-background-color-pressed: dynamic(#d5e2f0);
+
+$button-toolbar-background-gradient: dynamic('none');
+$button-toolbar-background-gradient-over: dynamic('none');
+$button-toolbar-background-gradient-focus: dynamic('none');
+$button-toolbar-background-gradient-pressed: dynamic('none');
+$button-toolbar-background-gradient-focus-over: dynamic('none');
+$button-toolbar-background-gradient-focus-pressed: dynamic('none');
+$button-toolbar-background-gradient-disabled: dynamic('none');
+
+$button-grid-cell-background-gradient: dynamic('none');
+$button-grid-cell-background-gradient-over: dynamic('none');
+$button-grid-cell-background-gradient-focus: dynamic('none');
+$button-grid-cell-background-gradient-pressed: dynamic('none');
+$button-grid-cell-background-gradient-focus-over: dynamic('none');
+$button-grid-cell-background-gradient-focus-pressed: dynamic('none');
+$button-grid-cell-background-gradient-disabled: dynamic('none');

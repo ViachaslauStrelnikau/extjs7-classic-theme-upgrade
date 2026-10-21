@@ -64,7 +64,7 @@
         /**
          * A detailed description of this package.
          */
-        "detailedDescription": "An empty theme package derived from the current TestApp theme. Production inheritance and compatibility are not verified.",
+        "detailedDescription": "A Sencha Cmd theme package with demo-only paint refinements. Production compatibility is not verified.",
 
         /**
          * The package version.

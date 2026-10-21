@@ -38,4 +38,4 @@ The application code and existing CSS do not need a theme-specific change.
 
 This package contains theme files only. It does not contain the demo, test harness, evidence, or Ext JS SDK.
 
-The package has no visual changes. It does not prove baseline compatibility. Production compatibility remains unverified.
+The package adds paint-only Sass variable overrides for button, panel header, grid header, and tab surfaces. It uses muted blue-gray fills and removes glossy gradients. It preserves geometry and state behavior. Demo results do not prove production compatibility.

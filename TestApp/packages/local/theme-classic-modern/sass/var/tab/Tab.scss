@@ -1,0 +1,16 @@
+// Keep active tabs white, use soft blue-gray inactive states, and flatten gradients.
+$tab-base-color: dynamic(#edf2f8);
+$tab-base-color-focus: dynamic(#e5edf7);
+$tab-base-color-over: dynamic(#e5edf7);
+$tab-base-color-active: dynamic(#ffffff);
+$tab-base-color-focus-over: dynamic(#e5edf7);
+$tab-base-color-focus-active: dynamic(#ffffff);
+$tab-base-color-disabled: dynamic(#f3f5f8);
+
+$tab-background-gradient: dynamic('none');
+$tab-background-gradient-focus: dynamic('none');
+$tab-background-gradient-over: dynamic('none');
+$tab-background-gradient-active: dynamic('none');
+$tab-background-gradient-focus-over: dynamic('none');
+$tab-background-gradient-focus-active: dynamic('none');
+$tab-background-gradient-disabled: dynamic('none');
