@@ -3,7 +3,14 @@
     "@sencha/ext": "^7.7.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "@sencha/cmd-windows": "7.7.0",
     "switchit": "^1.0.8"
+  },
+  "scripts": {
+    "compat:capture": "node tests/compatibility/capture.mjs",
+    "test:compatibility": "node --test --test-isolation=none tests/compatibility/cases.test.mjs tests/compatibility/evidence.test.mjs tests/compatibility/matrix.test.mjs tests/compatibility/package-contract.test.mjs tests/compatibility/selection.test.mjs tests/compatibility/cli-contract.test.mjs tests/compatibility/compare.test.mjs tests/compatibility/report.test.mjs",
+    "compat:compare": "node tests/compatibility/compare.mjs",
+    "compat:report": "node tests/compatibility/report.mjs"
   }
 }
