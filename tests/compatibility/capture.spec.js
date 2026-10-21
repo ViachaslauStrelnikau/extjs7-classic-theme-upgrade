@@ -384,11 +384,20 @@ function verifyStylesheetHashes(stylesheets, manifest, baseUrl) {
 
 async function waitForStableFrames(page, comparisonCase) {
     const selectors = comparisonCase.targetElements.map((target) => target.componentQuery || target.domSelector);
-    await page.evaluate((targetSelectors) => new Promise((resolve, reject) => {
+    return page.evaluate((targetSelectors) => new Promise((resolve, reject) => {
         let previous = null;
         let stableFrames = 0;
         const deadline = performance.now() + 15000;
         const sample = () => {
+            const animationManager = window.Ext?.fx?.Manager;
+            const animationQueue = animationManager?.items;
+            if (!animationQueue) {
+                reject(new Error('The Ext JS animation queue is unavailable for readiness checks.'));
+                return;
+            }
+            // A panel can keep changing layout after its target rectangles look stable.
+            // Drain Ext JS animations before sampling page-level layout counters.
+            const activeAnimationCount = animationQueue.length;
             const signature = targetSelectors.map((selector) => {
                 if (!selector) return null;
                 let element;
@@ -404,9 +413,15 @@ async function waitForStableFrames(page, comparisonCase) {
                 return [rect.x, rect.y, rect.width, rect.height, element.clientWidth, element.clientHeight, element.scrollWidth, element.scrollHeight];
             });
             const current = JSON.stringify(signature);
-            if (current === previous) stableFrames += 1;
+            if (activeAnimationCount === 0 && current === previous) stableFrames += 1;
             else stableFrames = 0;
-            if (stableFrames >= 3) resolve();
+            if (stableFrames >= 3) {
+                resolve({
+                    animationManagerAvailable: Boolean(animationManager?.items),
+                    activeAnimationCount,
+                    stableFrames
+                });
+            }
             else if (performance.now() > deadline) reject(new Error('Target measurements did not stabilize across consecutive animation frames.'));
             else requestAnimationFrame(sample);
             previous = current;
@@ -704,7 +719,7 @@ test('captures versioned compatibility evidence', async ({ browser }, testInfo) 
                         await Promise.all(Array.from(document.images, (image) => image.decode().catch(() => undefined)));
                     });
                     await page.waitForFunction(() => Array.from(document.images).every((image) => image.complete), null, { timeout: 30000 });
-                    await waitForStableFrames(page, comparisonCase);
+                    const readinessObservation = await waitForStableFrames(page, comparisonCase);
                     const actualState = await observeCaptureState(page, comparisonCase, state);
                     // Read layout counters before style collection and screenshots can trigger more work.
                     const layout = await layoutObservation(page, cdp, beforeMetrics);
@@ -764,6 +779,11 @@ test('captures versioned compatibility evidence', async ({ browser }, testInfo) 
                             loadedManifest,
                             stylesheetHashChecks,
                             initialRendering: { complete: true, fontStatus: await page.evaluate(() => document.fonts.status) },
+                            readinessObservation: {
+                                ...readinessObservation,
+                                method: 'Ext.fx.Manager.items.length and target geometry across requestAnimationFrame',
+                                limitations: ['This check tracks Ext JS managed animations only.']
+                            },
                             layoutObservation: layout
                         }
                     };
