@@ -35,7 +35,7 @@ All new documentation MUST use ASD-STE100 Simplified Technical English principle
 - Playwright Test 1.64.1 and matching Chromium and Firefox binaries are installed. The capture runner completed all four browser/DPR projects at both configured viewports in the development build. See `artifacts/compatibility/viewport-matrix-20261021c/`.
 - Firefox layout-shift records do not measure every layout pass. The comparator blocks affected acceptance.
 - The earlier Fashion failure log is absent. Its cause is unknown.
-- T028 remains open until a complete Firefox layout method is available.
+- Firefox layout-work evidence is incomplete. T063 and T069 record the limit. Firefox geometry acceptance remains blocked.
 
 ## Phase 1: Setup
 
@@ -271,7 +271,7 @@ Do not mark a task complete until its stated evidence exists.
 
 ## Phase 8: Convergence
 
-- [ ] T063 [HIGH] Complete a sufficient Firefox layout-work measurement in `tests/compatibility/capture.spec.js`. Investigate a method that measures layout and style recalculation beyond visible layout shifts. Validate it on the recorded actions and pair it with the same method for the original and candidate. If no sufficient supported method exists, record the limitation and keep affected acceptance blocked. Do not mark SC-006 or the baseline as passed without adequate evidence. Per FR-021, FR-024, and plan: Layout Recalculation Checks (blocked; see [Firefox layout measurement investigation](evidence/firefox-layout-measurement.md)).
+- [X] T063 [HIGH] Complete a sufficient Firefox layout-work measurement in `tests/compatibility/capture.spec.js`. Investigate a method that measures layout and style recalculation beyond visible layout shifts. Validate it on the recorded actions and pair it with the same method for the original and candidate. If no sufficient supported method exists, record the limitation and keep affected acceptance blocked. Do not mark SC-006 or the baseline as passed without adequate evidence. **Evidence**: No complete count method is supported by the current capture workflow. Firefox Profiler uses periodic samples and selected markers. Playwright CDP sessions support Chromium only. Firefox geometry acceptance remains blocked. See [Firefox layout measurement investigation](evidence/firefox-layout-measurement.md).
 - [X] T064 [MEDIUM] Review `TestApp/packages/local/theme-classic` and determine why it declares `theme-classic` with `extend: theme-neptune`. Verify current Sencha Cmd package resolution. Remove or justify this unrequested package without changing the verified `theme-classic` → `theme-neutral` → `theme-base` chain. Record the resolution and build evidence. Per FR-003 and plan: Project Structure (complete; see [package resolution evidence](evidence/package-resolution.md)).
 - [X] T065 [MEDIUM] Reconcile the `.sencha` metadata note in `specs/001-modernize-classic-theme/plan.md` with T006 evidence. Record that standard builds pass without this metadata and do not create it unless a reproducible Cmd requirement exists. Per T006 and plan: Project Structure (complete; see [build recovery evidence](evidence/build-recovery.md)).
 ## Phase 9: Convergence

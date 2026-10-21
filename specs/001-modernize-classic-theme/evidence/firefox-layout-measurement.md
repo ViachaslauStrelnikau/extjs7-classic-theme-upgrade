@@ -12,15 +12,19 @@ capture marks this observation as insufficient.
 
 ## Available Firefox Interfaces
 
-Firefox documents `nsIDOMWindowUtils.elementsRestyled` as a count of style calculations. It also
-documents `nsIReflowObserver` as an interface that detects interruptible and uninterruptible
-reflows. These interfaces are privileged browser APIs. The current page script cannot call them.
+The current `nsIDOMWindowUtils` interface can include methods that need elevated privileges. The
+current source does not expose an `elementsRestyled` counter. The capture page cannot use this
+privileged interface to count style calculations.
 
-Firefox WebDriver BiDi provides the `moz:profiler.start` and `moz:profiler.stop` commands. These
-commands save a Firefox profile. The documentation does not define the profile as a complete count
-of all style calculations and layout passes. The current Playwright capture does not open a BiDi
-session. Playwright documents CDP sessions for the Chrome DevTools Protocol, and supports CDP only
-for Chromium.
+Firefox WebDriver BiDi provides `moz:profiler.start` and `moz:profiler.stop`. These commands save a
+Firefox profile. Firefox Profiler uses periodic sampling, usually every 1–2 ms. Firefox code can
+also add markers for selected events. The profiler documentation does not guarantee a record for
+every style calculation or layout pass. Playwright's CDP sessions work only with Chromium. The
+current Playwright capture does not open a Firefox BiDi session or validate profiler data as a
+complete counter.
+
+The source review on 2026-10-21 found no supported method in the selected capture workflow that
+counts every Firefox style calculation and layout pass during the recorded actions.
 
 ## Decision
 
@@ -35,6 +39,8 @@ limitations in each capture.
 
 ## Sources
 
-- [Firefox performance measurement guidance](https://firefox-source-docs.mozilla.org/performance/bestpractices.html)
+- [Firefox `nsIDOMWindowUtils` interface](https://searchfox.org/firefox-main/source/dom/interfaces/base/nsIDOMWindowUtils.idl)
 - [Firefox WebDriver BiDi extensions](https://firefox-source-docs.mozilla.org/remote/webdriver-bidi/Extensions.html)
-- [Playwright CDPSession API](https://playwright.dev/docs/api/class-cdpsession)
+- [Firefox Profiler code overview](https://firefox-source-docs.mozilla.org/tools/profiler/code-overview.html)
+- [Firefox Profiler markers](https://firefox-source-docs.mozilla.org/tools/profiler/markers-guide.html)
+- [Playwright CDP sessions](https://playwright.dev/docs/api/class-browser#browser-new-browser-cdp-session)
