@@ -6,6 +6,7 @@ Use JavaScript Object Notation (JSON) for machine-readable records.
 Use stable string identifiers. Do not use generated element IDs as case identifiers.
 Use ISO 8601 timestamps and SHA-256 file hashes.
 Version records with `schemaVersion`.
+Document Object Model (DOM) means the browser document tree.
 
 ## ProductionInputSet
 
@@ -42,6 +43,8 @@ Fields: `caseId`, `componentFamily`, `fixtureReference`, `dataHash`, `states`, `
 `actions`, `expectedOutcomes`, `legacySelectors`, `protectedProperties`, `pseudoElements`.
 
 Identify roots and layout-sensitive children through stable case mappings.
+Each `targetElements` item has a stable `targetId` and a `componentQuery` or `domSelector`.
+Use unique `targetId` values in one case.
 Do not add theme-specific application configurations.
 Map every required component family and applicable state to cases.
 Production inputs add cases without removing required demo coverage.
@@ -52,10 +55,14 @@ Fields: `captureId`, `runId`, `buildId`, `environmentId`, `caseId`, `state`, `ti
 `geometry`, `computedStyles`, `dom`, `stylesheets`, `interactions`, `screenshotPath`, `diagnostics`.
 
 Geometry includes unrounded bounding rectangles and client, offset, and scroll dimensions.
-Styles include protected values, paint values, and applicable `::before` and `::after` values.
-DOM records retain hierarchy and standard classes. Normalize only generated instance identity.
-Record stylesheet URLs, hashes, and inline order.
-Record expected and actual interaction outcomes, missing assets, and page errors.
+Computed styles map each target to property values and applicable `::before` and `::after` values.
+DOM records use the same target IDs. They retain hierarchy, standard classes, and state classes.
+List each DOM normalization rule. Normalize generated instance identity only.
+Record stylesheet URLs, hashes, and order. Record inline stylesheet hashes and order.
+Record expected and actual interaction outcomes. Record missing assets and page errors.
+Diagnostics record actual device pixel ratio (DPR) and screenshot pixel dimensions.
+Mark layout observation as sufficient only when it records a method, scope, and observed work.
+Use the same capture DPR as the linked `Environment` record.
 
 ## ChangeGroup
 
