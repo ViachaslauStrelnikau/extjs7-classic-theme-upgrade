@@ -44,15 +44,15 @@ Finalize inheritance after production inputs are verified.
 The SDK maps this alias to `theme-classic`.
 Its chain is `theme-classic` → `theme-neutral` → `theme-base`.
 Classic Toolkit is not a theme package name.
-`node_modules/@sencha/cmd-windows/dist/templates/package/package.json.tpl.default`
-defines custom-package fields at the top level.
-SDK npm metadata instead places Cmd fields inside `sencha`.
+The installed Cmd theme generator emits a root `name` field and Cmd fields inside `sencha`.
+The SDK `theme-classic` and `theme-neutral` packages use this same structure.
+The generated `overrides/init.js` sets the theme identity. It does not override a component class.
 
 **Rationale**: A generated theme preserves package discovery and theme selection.
 The official guide describes theme generation, inheritance, selection, and inherited assets.
 [Sencha theming guide](https://docs.sencha.com/extjs/7.7.0/guides/core_concepts/theming.html)
 
-**Alternatives considered**: Copy SDK npm metadata, extend an abstract base directly, or add an overlay.
+**Alternatives considered**: Manually reformat generated metadata, extend an abstract base directly, or add an overlay.
 Reject these options. Use generated metadata and the verified active parent.
 If production uses another parent, resolve the package scope before G2.
 
