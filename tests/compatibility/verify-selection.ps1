@@ -72,11 +72,61 @@ function Invoke-Sencha($arguments, $logPath) {
     return $code
 }
 
+function Get-ResolvedThemePackageName($builtApp, $selectedTheme) {
+    $includedPackages = @($builtApp.packages.PSObject.Properties.Name)
+    if ($includedPackages -contains $selectedTheme) {
+        return $selectedTheme
+    }
+
+    $sdkThemeRoot = Join-Path $testApp 'ext/classic'
+    foreach ($packageFile in (Get-ChildItem -LiteralPath $sdkThemeRoot -Filter 'package.json' -File -Recurse)) {
+        $package = Get-Content -LiteralPath $packageFile.FullName -Raw | ConvertFrom-Json
+        $packageName = $package.sencha.name
+        if ($packageName -and @($package.sencha.alternateName) -contains $selectedTheme -and $includedPackages -contains $packageName) {
+            return $packageName
+        }
+    }
+
+    throw "The generated build manifest does not resolve theme '$selectedTheme' to an included package."
+}
+
+function Get-ResolvedThemeChain($builtApp, $selectedTheme) {
+    $packageName = Get-ResolvedThemePackageName $builtApp $selectedTheme
+    $chain = [System.Collections.Generic.List[string]]::new()
+    $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+
+    while ($packageName) {
+        if (-not $seen.Add($packageName)) {
+            throw "The generated theme package graph contains a cycle at '$packageName'."
+        }
+
+        $packageProperty = $builtApp.packages.PSObject.Properties[$packageName]
+        if (-not $packageProperty) {
+            throw "The generated build manifest omits parent package '$packageName'."
+        }
+
+        $chain.Add($packageName)
+        $packageName = $packageProperty.Value.extend
+    }
+
+    return $chain.ToArray()
+}
+
 function Save-BuildManifest($role, $mode, $selectedTheme, $sourceHashes, $fixtureHash, $logPath) {
     $outputRoot = Join-Path $testApp "build/$mode/TestApp"
     $builtApp = Get-Content (Join-Path $outputRoot 'app.json') -Raw | ConvertFrom-Json
     if ($builtApp.theme -ne $selectedTheme) {
         throw "Output theme identity does not match $role/$mode."
+    }
+
+    $parentChain = @(Get-ResolvedThemeChain $builtApp $selectedTheme)
+    $expectedParentChain = if ($role -eq 'derived') {
+        @('theme-classic-modern', 'theme-classic', 'theme-neutral', 'theme-base')
+    } else {
+        @('theme-classic', 'theme-neutral', 'theme-base')
+    }
+    if (($parentChain -join '|') -ne ($expectedParentChain -join '|')) {
+        throw "Resolved theme chain for $role/$mode does not match the verified demo chain: $($parentChain -join ' -> ')"
     }
 
     $outputHashes = [ordered]@{}
@@ -85,20 +135,17 @@ function Save-BuildManifest($role, $mode, $selectedTheme, $sourceHashes, $fixtur
         $outputHashes[$relative] = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
     }
 
-    $parentChain = if ($role -eq 'derived') {
-        @('theme-classic-modern', 'theme-classic', 'theme-neutral', 'theme-base')
-    } else {
-        @('theme-classic', 'theme-neutral', 'theme-base')
-    }
-    $packageName = if ($role -eq 'derived') { 'theme-classic-modern' } else { 'theme-classic' }
+    $packageName = $parentChain[0]
+    $packageVersion = $builtApp.packages.PSObject.Properties[$packageName].Value.version
     $manifest = [ordered]@{
         schemaVersion = 1
         buildId = "selection-$RunId-$role-$mode"
         themeRole = $role
         selectedTheme = $selectedTheme
         packageName = $packageName
-        packageVersion = '1.0.0'
+        packageVersion = $packageVersion
         parentChain = $parentChain
+        parentChainSource = 'Generated build app.json packages metadata'
         sourceHashes = $sourceHashes
         fixtureHash = $fixtureHash
         inputSetId = 'production-inputs-missing'
