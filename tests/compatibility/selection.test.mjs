@@ -29,3 +29,9 @@ test('the existing demo selects theme-classic-modern for visual review', async (
     const appJson = await readFile(new URL('../../TestApp/app.json', import.meta.url), 'utf8');
     assert.match(appJson, /"theme"\s*:\s*"theme-classic-modern"/);
 });
+
+test('selection verification supports an authorized development-only build matrix', async () => {
+    const script = await readFile(new URL('./verify-selection.ps1', import.meta.url), 'utf8');
+    assert.match(script, /\[string\[\]\] \$BuildModes = @\('development', 'production'\)/);
+    assert.equal((script.match(/foreach \(\$mode in \$BuildModes\)/g) || []).length, 2);
+});

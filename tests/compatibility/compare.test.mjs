@@ -138,6 +138,50 @@ test('reports geometry, protected styles, CSS, DOM, and behavior changes separat
     assert.equal(result.visual.status, 'fail');
 });
 
+test('excludes harness readiness metadata and cache-buster URLs from baseline repeatability', async () => {
+    const interactions = {
+        expected: { configuredState: 'normal', clicked: true },
+        actual: {
+            configuredState: 'normal', clicked: true, ready: true,
+            statePreparation: { expectedState: 'normal', actualState: 'normal', ready: true }
+        },
+        missingAssets: [],
+        pageErrors: []
+    };
+    const reference = capture({
+        interactions,
+        stylesheets: {
+            external: [{ order: 0, url: 'http://localhost:1841/app.css?_dc=100&theme=classic' }],
+            inlineStylesheets: [],
+            applicationOrder: ['theme', 'app', 'legacy'],
+            legacyDeclarations: []
+        }
+    });
+    const repeat = capture({
+        interactions,
+        stylesheets: {
+            external: [{ order: 0, url: 'http://localhost:1841/app.css?_dc=200&theme=classic' }],
+            inlineStylesheets: [],
+            applicationOrder: ['theme', 'app', 'legacy'],
+            legacyDeclarations: []
+        }
+    });
+
+    assert.deepEqual(assertStableOriginal(reference, repeat), { stable: true, differences: [] });
+    const comparison = await compareCaptures(reference, repeat, {
+        referencePng: screenshot,
+        actualPng: screenshot,
+        layoutObservation: {
+            sufficient: true,
+            method: 'test',
+            scope: 'page',
+            observedWork: { original: { layoutPasses: 1 }, candidate: { layoutPasses: 1 } },
+            limitations: []
+        }
+    });
+    assert.equal(comparison.behavior.status, 'pass');
+});
+
 test('blocks missing coverage and missing layout observation evidence', async () => {
     const original = capture();
     const candidate = capture({ themeRole: 'derived' });

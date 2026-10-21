@@ -3,7 +3,7 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { comparePngBuffers } from './png.mjs';
-import { assertSafeRunId, readJson, sameHashes, sha256File, validateCapturePair, validateRecord, validateSuiteResults } from './evidence.mjs';
+import { assertSafeRunId, buildRoleForCapture, readJson, sameHashes, sha256File, validateCapturePair, validateRecord, validateSuiteResults } from './evidence.mjs';
 import { captureVariants } from './matrix.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -61,6 +61,38 @@ function layoutObservationIsSufficient(observation) {
         work.candidate && typeof work.candidate === 'object' && Object.keys(work.candidate).length > 0 &&
         Array.isArray(observation.limitations)
     );
+}
+
+function normalizeInteractionEvidence(interactions = {}) {
+    const normalizeOutcome = (outcome = {}) => {
+        const normalized = { ...outcome };
+        delete normalized.ready;
+        delete normalized.statePreparation;
+        return normalized;
+    };
+    return {
+        expected: normalizeOutcome(interactions.expected),
+        actual: normalizeOutcome(interactions.actual),
+        missingAssets: interactions.missingAssets,
+        pageErrors: interactions.pageErrors
+    };
+}
+
+function normalizeStylesheetEvidence(stylesheets = {}) {
+    const normalizeUrl = (value) => {
+        if (typeof value !== 'string') return value;
+        try {
+            const url = new URL(value);
+            url.searchParams.delete('_dc');
+            return url.toString();
+        } catch {
+            return value;
+        }
+    };
+    return {
+        ...stylesheets,
+        external: (stylesheets.external || []).map((sheet) => ({ ...sheet, url: normalizeUrl(sheet.url) }))
+    };
 }
 
 function legacyCssDifferences(reference, actual) {
@@ -143,11 +175,13 @@ export async function compareCaptures(reference, actual, options = {}) {
     const protectedProperties = options.caseDefinition?.protectedProperties || [];
     const geometryDiffs = deepDifferences(reference.geometry || {}, actual.geometry || {});
     const domDiffs = deepDifferences(reference.dom || {}, actual.dom || {});
-    const interactionDiffs = deepDifferences(reference.interactions?.actual || {}, actual.interactions?.actual || {});
-    const referenceOutcomeDiffs = deepDifferences(reference.interactions?.expected || {}, reference.interactions?.actual || {});
-    const candidateOutcomeDiffs = deepDifferences(actual.interactions?.expected || {}, actual.interactions?.actual || {});
-    const missingAssetDiffs = (actual.interactions?.missingAssets || []).map((asset) => ({ path: 'interactions.missingAssets', actual: asset }));
-    const pageErrorDiffs = (actual.interactions?.pageErrors || []).map((error) => ({ path: 'interactions.pageErrors', actual: error }));
+    const referenceInteractions = normalizeInteractionEvidence(reference.interactions);
+    const actualInteractions = normalizeInteractionEvidence(actual.interactions);
+    const interactionDiffs = deepDifferences(referenceInteractions.actual, actualInteractions.actual);
+    const referenceOutcomeDiffs = deepDifferences(referenceInteractions.expected, referenceInteractions.actual);
+    const candidateOutcomeDiffs = deepDifferences(actualInteractions.expected, actualInteractions.actual);
+    const missingAssetDiffs = (actualInteractions.missingAssets || []).map((asset) => ({ path: 'interactions.missingAssets', actual: asset }));
+    const pageErrorDiffs = (actualInteractions.pageErrors || []).map((error) => ({ path: 'interactions.pageErrors', actual: error }));
     const css = styleDifferences(reference, actual, { phase, approvedPaintProperties, protectedProperties });
     css.cssFailures.push(...legacyCssDifferences(reference, actual));
     css.cssFailures.push(...domDiffs.map((difference) => ({ ...difference, path: `dom.${difference.path}` })));
@@ -339,8 +373,12 @@ export function assertStableOriginal(original, repeat) {
     const fields = ['geometry', 'computedStyles', 'dom', 'stylesheets', 'interactions'];
     const differences = [];
     for (const field of fields) {
-        if (!equal(original[field], repeat[field])) {
-            differences.push({ path: field, expected: original[field], actual: repeat[field] });
+        const normalize = field === 'stylesheets' ? normalizeStylesheetEvidence
+            : field === 'interactions' ? normalizeInteractionEvidence : (value) => value;
+        const expected = normalize(original[field]);
+        const actual = normalize(repeat[field]);
+        if (!equal(expected, actual)) {
+            differences.push({ path: field, expected, actual });
         }
     }
     const originalImageHash = original.diagnostics?.screenshotSha256;

@@ -1,6 +1,9 @@
 param(
     [Parameter(Mandatory = $true)]
-    [string] $RunId
+    [string] $RunId,
+
+    [ValidateSet('development', 'production')]
+    [string[]] $BuildModes = @('development', 'production')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -186,7 +189,7 @@ try {
 
     $replacementRefreshLog = Join-Path $artifactRoot 'replacement-refresh.log'
     $replacementRefreshExitCode = Invoke-Sencha @('app', 'refresh') $replacementRefreshLog
-    foreach ($mode in @('development', 'production')) {
+    foreach ($mode in $BuildModes) {
         $logPath = Join-Path $artifactRoot "replacement-build-$mode.log"
         Invoke-Sencha @('app', 'build', $mode) $logPath | Out-Null
         $builds += Save-BuildManifest 'derived' $mode 'theme-classic-modern' $initialSourceHashes $fixtureHash $logPath
@@ -198,7 +201,7 @@ try {
 Set-Location $testApp
 $rollbackRefreshLog = Join-Path $artifactRoot 'rollback-refresh.log'
 $rollbackRefreshExitCode = Invoke-Sencha @('app', 'refresh') $rollbackRefreshLog
-foreach ($mode in @('development', 'production')) {
+foreach ($mode in $BuildModes) {
     $logPath = Join-Path $artifactRoot "rollback-build-$mode.log"
     Invoke-Sencha @('app', 'build', $mode) $logPath | Out-Null
     $builds += Save-BuildManifest 'rollback' $mode 'ext-theme-classic' $initialSourceHashes $fixtureHash $logPath
