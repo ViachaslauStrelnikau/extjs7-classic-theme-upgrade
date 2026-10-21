@@ -7,6 +7,9 @@ $tab-base-color-focus-over: dynamic(#e5edf7);
 $tab-base-color-focus-active: dynamic(#ffffff);
 $tab-base-color-disabled: dynamic(#f3f5f8);
 
+// Keep Classic tab borders unchanged while the tab fills change.
+$tab-border-color: dynamic(#8db3e3);
+
 $tab-background-gradient: dynamic('none');
 $tab-background-gradient-focus: dynamic('none');
 $tab-background-gradient-over: dynamic('none');

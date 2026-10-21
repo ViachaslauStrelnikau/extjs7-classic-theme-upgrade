@@ -1,0 +1,4 @@
+// Classic ties the bottom border to the fill. Keep its original color.
+.#{$prefix}grid-header-ct {
+    border-bottom-color: $grid-header-border-color;
+}
