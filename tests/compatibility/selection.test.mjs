@@ -25,10 +25,7 @@ test('rejects failed, mismatched, and stale build manifests', () => {
     assert.throws(() => validateBuildResult({ ...valid, outputHashes: {} }, 'theme-classic-modern', 'development'), /no output hashes/);
 });
 
-test('the existing demo still selects the original theme before package integration', async () => {
-    const appJson = await readFile(new URL('../../TestApp/app.json', import.meta.url), 'utf8').catch(async () => {
-        const { readFile: read } = await import('node:fs/promises');
-        return read(new URL('../../TestApp/app.json', import.meta.url), 'utf8');
-    });
-    assert.match(appJson, /"theme"\s*:\s*"ext-theme-classic"/);
+test('the existing demo selects theme-classic-modern for visual review', async () => {
+    const appJson = await readFile(new URL('../../TestApp/app.json', import.meta.url), 'utf8');
+    assert.match(appJson, /"theme"\s*:\s*"theme-classic-modern"/);
 });

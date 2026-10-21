@@ -309,3 +309,33 @@ test('rejects unstable originals and retains earlier failures across reruns', ()
     assert.equal(second.historicalFailures.length, 1);
     assert.equal(second.historicalFailures[0].category, 'geometry');
 });
+
+test('runs modernization comparison only for the modernization phase', async () => {
+    const calls = [];
+    const baselineComparator = async (input) => {
+        calls.push(['baseline', input]);
+        return { gates: [], errors: [] };
+    };
+    const modernizationComparator = async (input) => {
+        calls.push(['modernization', input]);
+        return { status: 'blocked', gates: [], errors: ['G0 is blocked.'] };
+    };
+    const baselineOnly = await comparison.runCompareWorkflow({
+        runId: 'baseline-compare', buildMode: 'development', phase: 'baseline',
+        baselineComparator, modernizationComparator
+    });
+    assert.equal(baselineOnly.modernization, null);
+    assert.deepEqual(calls.map(([name]) => name), ['baseline']);
+
+    const modernizationRun = await comparison.runCompareWorkflow({
+        runId: 'modernization-compare', buildMode: 'development', phase: 'modernization', suiteStage: 'us3',
+        baselineComparator, modernizationComparator
+    });
+    assert.equal(modernizationRun.modernization.status, 'blocked');
+    assert.deepEqual(calls.map(([name]) => name), ['baseline', 'baseline', 'modernization']);
+    assert.deepEqual(calls[2][1], { runId: 'modernization-compare', buildMode: 'development', suiteStage: 'us3' });
+    await assert.rejects(
+        comparison.runCompareWorkflow({ runId: 'bad-phase', buildMode: 'development', phase: 'accept' }),
+        /phase must be baseline or modernization/
+    );
+});

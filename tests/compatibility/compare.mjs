@@ -793,17 +793,42 @@ export async function compareRun({ runId, buildMode, suiteStage = 'us2' }) {
     return output;
 }
 
+export async function runCompareWorkflow({
+    runId,
+    buildMode,
+    phase = 'baseline',
+    suiteStage = 'us2',
+    baselineComparator = compareRun,
+    modernizationComparator = compareModernizationRun
+}) {
+    if (!['baseline', 'modernization'].includes(phase)) {
+        throw new TypeError('phase must be baseline or modernization.');
+    }
+    const baseline = await baselineComparator({ runId, buildMode, suiteStage });
+    const modernization = phase === 'modernization'
+        ? await modernizationComparator({ runId, buildMode, suiteStage })
+        : null;
+    return { baseline, modernization };
+}
+
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
     const runId = process.env.COMPAT_RUN;
     const buildMode = process.env.COMPAT_BUILD_MODE;
-    if (!runId || !['development', 'production'].includes(buildMode)) {
-        console.error('Set COMPAT_RUN and COMPAT_BUILD_MODE before comparison.');
+    const phase = process.env.COMPAT_PHASE;
+    if (!runId || !['development', 'production'].includes(buildMode) || !['baseline', 'modernization'].includes(phase)) {
+        console.error('Set COMPAT_RUN, COMPAT_BUILD_MODE, and COMPAT_PHASE (baseline or modernization) before comparison.');
         process.exitCode = 2;
     } else {
-        compareRun({ runId, buildMode, suiteStage: process.env.COMPAT_SUITE_STAGE || 'us2' })
-            .then((result) => {
-                console.log(`${buildMode} G0=${result.gates[0].status} G1=${result.gates[1].status} G2=${result.gates[2].status}`);
-                if (result.errors.length || result.gates.some((gate) => gate.status !== 'passed')) process.exitCode = 1;
+        runCompareWorkflow({ runId, buildMode, phase, suiteStage: process.env.COMPAT_SUITE_STAGE || 'us2' })
+            .then(({ baseline, modernization }) => {
+                console.log(`${buildMode} baseline G0=${baseline.gates[0].status} G1=${baseline.gates[1].status} G2=${baseline.gates[2].status}`);
+                const baselineIncomplete = baseline.errors.length || baseline.gates.some((gate) => gate.status !== 'passed');
+                const modernizationIncomplete = modernization && (modernization.errors.length || modernization.status !== 'passed');
+                if (modernization) {
+                    const gates = Object.fromEntries(modernization.gates.map((gate) => [gate.gateId, gate.status]));
+                    console.log(`${buildMode} modernization G0=${gates.G0} G2=${gates.G2} G3=${gates.G3}`);
+                }
+                if (baselineIncomplete || modernizationIncomplete) process.exitCode = 1;
             })
             .catch((error) => {
                 console.error(error.stack || error.message);

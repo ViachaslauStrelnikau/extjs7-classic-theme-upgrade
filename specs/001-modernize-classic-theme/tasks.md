@@ -282,3 +282,8 @@ Do not mark a task complete until its stated evidence exists.
 - [ ] T069 [HIGH] Validate a complete Firefox layout and style recalculation method against recorded actions, or record unsupported coverage and keep acceptance blocked per FR-021, FR-024, and SC-006 (partial).
 - [ ] T070 [HIGH] After G2 and US3 pass, obtain reviewer approval and implement and validate each required visual change group in order, with regression and rollback evidence per FR-014–FR-018, FR-026, and US4/AC1–AC3 (missing).
 - [ ] T071 [HIGH] Run the documented final workflow, generate the report with AC-001 through AC-014 and SC-001 through SC-008 evidence, and record the G4 review per FR-027, SC-008, and AC-014 (missing).
+
+## Phase 10: Convergence
+
+- [X] T072 [HIGH] Connect compareModernizationRun to the compat:compare workflow. Include each change group, case result, rollback result, and difference image in tests/compatibility/report.mjs. Remove the stale claim that the theme has no visual changes. Preserve blocked and failed results. Per T044, FR-022–FR-027, and SC-008 (partial).
+- [ ] T073 [HIGH] Define and approve paint goals for form controls, menus, and floating components. Add approved paint-only Sass variables under TestApp/packages/local/theme-classic-modern/sass/var/. Map each family to its applicable states. Validate each group in order and record omitted changes with a reason. Keep demo-only scope and blocked acceptance statuses where required evidence is incomplete. Per FR-014–FR-016, FR-020, FR-026, SC-004, and US4/AC1–AC3 (missing).
