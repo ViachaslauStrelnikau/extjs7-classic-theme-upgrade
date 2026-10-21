@@ -52,6 +52,34 @@ test('reports blocked gates and unverified criteria when evidence is absent', as
     }
 });
 
+test('reports completed compatibility suites with linked evidence', async () => {
+    const rootDir = await mkdtemp(path.join(os.tmpdir(), 'compatibility-report-suites-'));
+    try {
+        const runId = 'report-suites-complete';
+        const runRoot = path.join(rootDir, 'artifacts', 'compatibility', runId);
+        await mkdir(runRoot, { recursive: true });
+        const suiteNames = ['capture.spec.js', 'css-contract.spec.js', 'interactions.spec.js'];
+        const suites = suiteNames.map((suite) => ({
+            suite,
+            status: 'completed',
+            outcome: { total: 4, passed: 4, failed: 0, skipped: 0, flaky: 0 },
+            evidencePaths: [`development/original/suite-results/${suite}.json`]
+        }));
+        await writeFile(path.join(runRoot, 'suite-results.json'), JSON.stringify({ schemaVersion: 1, runId, suites }));
+
+        const result = await createReport({ runId, rootDir });
+        assert.equal(result.report.suiteCoverage.status, 'complete');
+        assert.deepEqual(result.report.suiteCoverage.suites.map((item) => item.status), ['completed', 'completed', 'completed']);
+        assert.ok(!result.report.limitations.some((item) => item.includes('CSS compatibility and interaction suites remain incomplete')));
+        const markdown = await readFile(result.markdownPath, 'utf8');
+        assert.match(markdown, /## Playwright suites/);
+        assert.match(markdown, /development\/original\/suite-results\/css-contract\.spec\.js\.json/);
+        assert.match(await readFile(result.htmlPath, 'utf8'), /CSS contract suite/);
+    } finally {
+        await rm(rootDir, { recursive: true, force: true });
+    }
+});
+
 test('links selection and rollback evidence to the selected run', async () => {
     const rootDir = await mkdtemp(path.join(os.tmpdir(), 'compatibility-selection-report-'));
     try {

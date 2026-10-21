@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { assertSafeRunId, readJson, sameHashes, validateBuildManifest, validateRecord } from './evidence.mjs';
+import { assertSafeRunId, readJson, requiredSuiteNames, sameHashes, validateBuildManifest, validateRecord, validateSuiteResults } from './evidence.mjs';
 import { validatePackageDirectory } from './package-contract.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -48,6 +48,43 @@ function categoriesFrom(results, category) {
     if (entries.some((entry) => entry[category]?.status === 'fail')) return 'fail';
     if (entries.every((entry) => entry[category]?.status === 'pass')) return 'pass';
     return 'blocked';
+}
+
+function summarizeSuiteCoverage(suiteEvidence, expectedRunId) {
+    const suiteResults = Array.isArray(suiteEvidence?.suites) ? suiteEvidence.suites : [];
+    let validationError = null;
+    if (!suiteEvidence || suiteEvidence.schemaVersion !== 1 || suiteEvidence.runId !== expectedRunId) {
+        validationError = 'Suite evidence is missing, invalid, or belongs to another run.';
+    } else {
+        try {
+            validateSuiteResults('us3', suiteResults);
+        } catch (error) {
+            validationError = error.message;
+        }
+    }
+
+    const byName = new Map(suiteResults.map((result) => [result.suite, result]));
+    const displayNames = {
+        'capture.spec.js': 'Capture suite',
+        'css-contract.spec.js': 'CSS contract suite',
+        'interactions.spec.js': 'Interaction suite'
+    };
+    return {
+        status: validationError ? 'incomplete' : 'complete',
+        validationError,
+        suites: requiredSuiteNames('us3').map((suite) => {
+            const result = byName.get(suite);
+            return {
+                suite,
+                displayName: displayNames[suite],
+                status: result?.status || 'missing',
+                outcome: result?.outcome || null,
+                evidencePaths: Array.isArray(result?.evidencePaths)
+                    ? result.evidencePaths.filter((file) => file.endsWith(`/suite-results/${suite}.json`)).slice(0, 4)
+                    : []
+            };
+        })
+    };
 }
 
 async function safeReadJson(filePath) {
@@ -175,6 +212,13 @@ function renderMarkdown(report, rootDir) {
     for (const [mode, item] of Object.entries(report.buildModes)) {
         lines.push(`| ${mode} | ${item.comparisonCount} | ${item.geometry} | ${item.css} | ${item.behavior} | ${item.visual} |`);
     }
+    lines.push('', '## Playwright suites', '', '| Suite | Status | Passed / total | Evidence |', '| --- | --- | ---: | --- |');
+    for (const item of report.suiteCoverage.suites) {
+        const outcome = item.outcome ? `${item.outcome.passed}/${item.outcome.total}` : '0/0';
+        const roleEvidence = item.evidencePaths.map((file) => `[${file}](${path.relative(path.dirname(report.reportPath), path.resolve(rootDir, 'artifacts', 'compatibility', report.runId, file)).replaceAll(path.sep, '/')})`);
+        const evidence = ['[suite-results.json](suite-results.json)', ...roleEvidence].join(', ');
+        lines.push(`| ${item.displayName} | ${item.status} | ${outcome} | ${evidence} |`);
+    }
     lines.push('', '## Limitations', '');
     for (const item of report.limitations) lines.push(`- ${item}`);
     lines.push('', '## Modernization groups', '', '| Group | Sequence | Approval | Comparison |', '| --- | ---: | --- | --- |');
@@ -214,6 +258,15 @@ function renderHtml(report, rootDir) {
     const successRows = report.successCriteria.map((item) => `<tr><td>${escapeHtml(item.id)}</td><td>${escapeHtml(item.name)}</td><td>${escapeHtml(item.status)}</td><td>${escapeHtml(item.criteria.join(', '))}</td></tr>`).join('');
     const gates = report.gates.map((gate) => `<li>${escapeHtml(gate.gateId)}: ${escapeHtml(gate.status)}</li>`).join('');
     const limitations = report.limitations.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
+    const suiteRows = report.suiteCoverage.suites.map((item) => {
+        const outcome = item.outcome ? `${item.outcome.passed}/${item.outcome.total}` : '0/0';
+        const roleEvidence = item.evidencePaths.map((file) => {
+            const href = path.relative(path.dirname(report.reportPath), path.resolve(rootDir, 'artifacts', 'compatibility', report.runId, file)).replaceAll(path.sep, '/');
+            return `<a href="${escapeHtml(href)}">${escapeHtml(file)}</a>`;
+        }).join('<br>');
+        const evidence = [`<a href="suite-results.json">suite-results.json</a>`, roleEvidence].filter(Boolean).join('<br>');
+        return `<tr><td>${escapeHtml(item.displayName)}</td><td>${escapeHtml(item.status)}</td><td>${escapeHtml(outcome)}</td><td>${evidence}</td></tr>`;
+    }).join('');
     const groups = report.modernization?.changeGroups || [];
     const groupRows = groups.map((group) => `<tr><td>${escapeHtml(group.changeId)}</td><td>${escapeHtml(group.sequence)}</td><td>${escapeHtml(group.status)}</td><td>${escapeHtml(group.comparisonStatus || 'not-run')}</td></tr>`).join('')
         || '<tr><td colspan="4">No groups recorded; status blocked.</td></tr>';
@@ -226,7 +279,7 @@ function renderHtml(report, rootDir) {
         };
         return `<tr><td>${escapeHtml(result.changeId)}</td><td>${escapeHtml(result.caseId)}</td><td>${escapeHtml(result.project)}</td><td>${escapeHtml(result.state)}</td><td>${escapeHtml(result.status)}</td><td>${escapeHtml(result.modernized?.status || 'blocked')}</td><td>${escapeHtml(result.rollback?.status || 'blocked')}</td><td>${[differenceLink('modernized'), differenceLink('rollback')].filter(Boolean).join('<br>') || 'none'}</td></tr>`;
     }).join('') || '<tr><td colspan="8">No case results recorded; status blocked.</td></tr>';
-    return `<!doctype html><html lang="en"><meta charset="utf-8"><title>${escapeHtml(report.runId)} compatibility report</title><h1>Compatibility report: ${escapeHtml(report.runId)}</h1><p>Status: ${escapeHtml(report.status)}</p><h2>Acceptance criteria</h2><table><thead><tr><th>ID</th><th>Criterion</th><th>Status</th><th>Evidence</th></tr></thead><tbody>${rows}</tbody></table><h2>Success criteria</h2><table><thead><tr><th>ID</th><th>Criterion</th><th>Status</th><th>Acceptance criteria</th></tr></thead><tbody>${successRows}</tbody></table><h2>Gates</h2><ul>${gates}</ul><h2>Limitations</h2><ul>${limitations}</ul><h2>Modernization groups</h2><table><thead><tr><th>Group</th><th>Sequence</th><th>Approval</th><th>Comparison</th></tr></thead><tbody>${groupRows}</tbody></table><h2>Modernization case results</h2><table><thead><tr><th>Group</th><th>Case</th><th>Project</th><th>State</th><th>Result</th><th>Modernized</th><th>Rollback</th><th>Difference images</th></tr></thead><tbody>${caseRows}</tbody></table></html>`;
+    return `<!doctype html><html lang="en"><meta charset="utf-8"><title>${escapeHtml(report.runId)} compatibility report</title><h1>Compatibility report: ${escapeHtml(report.runId)}</h1><p>Status: ${escapeHtml(report.status)}</p><h2>Acceptance criteria</h2><table><thead><tr><th>ID</th><th>Criterion</th><th>Status</th><th>Evidence</th></tr></thead><tbody>${rows}</tbody></table><h2>Success criteria</h2><table><thead><tr><th>ID</th><th>Criterion</th><th>Status</th><th>Acceptance criteria</th></tr></thead><tbody>${successRows}</tbody></table><h2>Gates</h2><ul>${gates}</ul><h2>Playwright suites</h2><table><thead><tr><th>Suite</th><th>Status</th><th>Passed / total</th><th>Evidence</th></tr></thead><tbody>${suiteRows}</tbody></table><h2>Limitations</h2><ul>${limitations}</ul><h2>Modernization groups</h2><table><thead><tr><th>Group</th><th>Sequence</th><th>Approval</th><th>Comparison</th></tr></thead><tbody>${groupRows}</tbody></table><h2>Modernization case results</h2><table><thead><tr><th>Group</th><th>Case</th><th>Project</th><th>State</th><th>Result</th><th>Modernized</th><th>Rollback</th><th>Difference images</th></tr></thead><tbody>${caseRows}</tbody></table></html>`;
 }
 
 export async function createReport({ runId, selectionRunId = null, rootDir = root } = {}) {
@@ -253,6 +306,8 @@ export async function createReport({ runId, selectionRunId = null, rootDir = roo
         packageCheck = { valid: false };
     }
     const productionInputs = await safeReadJson(path.join(runRoot, 'production-inputs.json'));
+    const suiteEvidence = await safeReadJson(path.join(runRoot, 'suite-results.json'));
+    const suiteCoverage = summarizeSuiteCoverage(suiteEvidence, runId);
     const g0 = productionInputs?.status === 'verified' ? 'passed' : 'blocked';
     const gates = {
         G0: g0,
@@ -284,7 +339,7 @@ export async function createReport({ runId, selectionRunId = null, rootDir = roo
     const limitations = [
         productionInputs?.status === 'verified' ? 'Production inputs are verified for this run.' : 'Production CSS, stylesheet order, theme inheritance, component states, and browser requirements are not verified. G0 is blocked.',
         selectionError ? `Selection evidence is invalid. ${selectionError}` : selection ? 'Selection and rollback evidence passed its manifest checks.' : 'Selection and rollback evidence was not supplied. Do not accept AC-002.',
-        'CSS compatibility and interaction suites remain incomplete. Do not accept G1 or G2.',
+        ...(suiteCoverage.status === 'complete' ? [] : [`CSS compatibility and interaction suites are incomplete. ${suiteCoverage.validationError || 'See suite-results.json.'} Do not accept G1 or G2.`]),
         'Firefox layout-shift records do not measure every layout pass. Keep affected acceptance blocked.',
         modernization ? `Modernization comparison status is ${modernization.status || 'blocked'}; see the group and case results below.` : 'Modernization comparison evidence was not supplied for this run.',
         'Demo build results do not prove production compatibility.'
@@ -295,6 +350,7 @@ export async function createReport({ runId, selectionRunId = null, rootDir = roo
         status: gates.G0 === 'passed' && gates.G1 === 'passed' && gates.G2 === 'passed' && gates.G3 === 'passed' && gates.G4 === 'passed' ? 'passed' : 'blocked',
         gates: Object.entries(gates).map(([gateId, status]) => ({ gateId, status })),
         buildModes: summaryBuildModes,
+        suiteCoverage,
         modernization,
         acceptanceCriteria,
         successCriteria: successCriteriaWithStatus,
