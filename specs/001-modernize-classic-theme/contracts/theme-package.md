@@ -1,15 +1,17 @@
 # Theme Package Contract
 
-**Status**: Proposed implementation contract. The package does not exist yet.
+**Status**: Active implementation contract. The empty package has been generated. Build selection remains unverified.
 
 ## Package Identity and Dependencies
 
 Use package name `theme-classic-modern` and toolkit `classic`.
 Support only Ext JS 7.7.0.31.
 Generate the package through the installed Sencha Cmd theme generator.
-Use top-level Cmd metadata: `name`, `type`, `toolkit`, `extend`, `version`, and `sass`.
-Set `type` to `theme`. Set Sass namespace to `Ext`.
-Do not copy the SDK npm metadata wrapper into the custom package.
+Use the metadata shape emitted by the installed Cmd theme generator.
+Set root `name` to `theme-classic-modern`.
+Set `sencha.type` to `theme`, `sencha.toolkit` to `classic`, and `sencha.sass.namespace` to `Ext`.
+Set `sencha.extend` to the verified parent package.
+The generated `overrides/init.js` may set the theme identity. Do not add component override classes or application behavior.
 Do not use `compatVersion` as a claim of support for other SDK versions.
 
 Location: `TestApp/packages/local/theme-classic-modern`.
