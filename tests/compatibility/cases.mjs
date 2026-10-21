@@ -24,7 +24,7 @@ const caseDefinitions = [
         targetElements: ['#compatibility-toolbar', '#compatibility-normal-button', '#compatibility-toggle-button', '#compatibility-disabled-button', '#compatibility-long-button'],
         actions: ['click-normal-button', 'toggle-button', 'open-split-button-menu', 'keyboard-focus'],
         expectedOutcomes: ['normal-action-result', 'toggle-state-change', 'split-menu-visible', 'focus-visible'],
-        legacySelectors: ['.compatibility-lab .x-btn', '.compatibility-lab .compatibility-controls .x-toolbar .x-btn', '.compatibility-lab .compatibility-controls .x-btn.x-btn-over .x-btn-inner', '.compatibility-lab .compatibility-controls .x-btn.x-btn-focus .x-btn-inner', '.compatibility-lab .compatibility-controls .x-btn.x-btn-pressed .x-btn-inner', '.compatibility-lab .compatibility-controls .x-btn.x-btn-disabled .x-btn-inner'],
+        legacySelectors: ['.compatibility-lab .x-btn .x-btn-inner', '.compatibility-lab .compatibility-controls .x-toolbar .x-btn .x-btn-inner', '.compatibility-lab .compatibility-controls .x-btn.x-btn-over .x-btn-inner', '.compatibility-lab .compatibility-controls .x-btn.x-btn-focus .x-btn-inner', '.compatibility-lab .compatibility-controls .x-btn.x-btn-pressed .x-btn-inner', '.compatibility-lab .compatibility-controls .x-btn.x-btn-disabled .x-btn-inner'],
         pseudoElements: []
     },
     {
@@ -72,7 +72,7 @@ const caseDefinitions = [
         targetElements: ['#compatibility-required-field', '#compatibility-combo', '#compatibility-checkbox', '#compatibility-radio-group', '#compatibility-readonly-field', '#compatibility-disabled-field'],
         actions: ['validate-empty-field', 'enter-valid-value', 'select-combo-value', 'toggle-checkbox', 'select-radio-value'],
         expectedOutcomes: ['invalid-state-visible', 'valid-state-visible', 'combo-value-changed', 'checkbox-value-changed', 'radio-value-changed'],
-        legacySelectors: ['.compatibility-lab .x-form-invalid-field', '.compatibility-lab .x-form-field-readonly'],
+        legacySelectors: ['.compatibility-lab .x-form-invalid-field', '.compatibility-lab .x-form-readonly .x-form-field'],
         pseudoElements: []
     },
     {
@@ -84,7 +84,7 @@ const caseDefinitions = [
         targetElements: ['#compatibility-inner-tabs', '#compatibility-first-tab', '#compatibility-second-tab', '.x-tab-active'],
         actions: ['select-second-tab', 'navigate-tab-keyboard'],
         expectedOutcomes: ['second-tab-active', 'keyboard-focus-moved'],
-        legacySelectors: ['.compatibility-lab .x-tab-active .x-tab-inner'],
+        legacySelectors: ['.compatibility-lab .x-tab.x-tab-active .x-tab-inner'],
         pseudoElements: []
     },
     {

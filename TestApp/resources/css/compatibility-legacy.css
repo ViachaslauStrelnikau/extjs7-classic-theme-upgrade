@@ -1,9 +1,13 @@
 /* Shared legacy CSS fixtures. Keep these rules identical for both themes. */
-.compatibility-lab .x-btn {
+.compatibility-lab {
+    --compatibility-cascade-order: external;
+}
+
+.compatibility-lab .x-btn .x-btn-inner {
     color: #173b5c;
 }
 
-.compatibility-lab .compatibility-controls .x-toolbar .x-btn {
+.compatibility-lab .compatibility-controls .x-toolbar .x-btn .x-btn-inner {
     color: #244f70;
 }
 
@@ -23,7 +27,7 @@
     color: #666666;
 }
 
-.compatibility-lab .x-tab-active .x-tab-inner {
+.compatibility-lab .x-tab.x-tab-active .x-tab-inner {
     color: #173b5c;
 }
 
@@ -36,7 +40,7 @@
     border-color: #a32828;
 }
 
-.compatibility-lab .x-form-field-readonly {
+.compatibility-lab .x-form-readonly .x-form-field {
     background-color: #f0f2f4;
 }
 

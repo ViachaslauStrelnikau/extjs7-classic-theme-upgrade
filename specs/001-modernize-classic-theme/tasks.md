@@ -129,7 +129,7 @@ Require equal effective legacy declarations, geometry, DOM contracts, and outcom
 
 ### Tests
 
-- [ ] T038 [P] [US3] Add CSS compatibility assertions in `tests/compatibility/css-contract.spec.js`. Verify standard, nested, hover, selected, focused, disabled, invalid, and pseudo-element selectors where applicable. Test competing specificity and external and inline stylesheet order. Compare actual effective values and retain existing navigation Sass fixtures.
+- [X] T038 [P] [US3] Add CSS compatibility assertions in `tests/compatibility/css-contract.spec.js`. Verify standard, nested, hover, selected, focused, disabled, invalid, and pseudo-element selectors where applicable. Test competing specificity and external and inline stylesheet order. Compare actual effective values and retain existing navigation Sass fixtures.
 - [ ] T039 [P] [US3] Add interaction assertions in `tests/compatibility/interactions.spec.js` for every coverage-table action. Verify outcomes after clicks, toggles, input, validation, combo selection, grid edit/sort/select/scroll, tree and tab keyboard navigation, menus, collapse/expand, window drag/resize, dialogs, and focus traversal. Include viewport resize and edge-positioned floats.
 
 ### Integration and Verification
