@@ -41,6 +41,7 @@ $themeCmd = Join-Path $themeRepository 'node_modules/@sencha/cmd-windows/dist/se
 Set-Location (Join-Path $themeRepository 'TestApp')
 & $themeCmd app refresh
 & $themeCmd app build development
+& $themeCmd app build production
 ```
 
 Run these commands from `TestApp`.
@@ -127,8 +128,8 @@ Use the verified parent chain. Initially add no paint rules or replacement asset
 See [theme-package.md](contracts/theme-package.md).
 
 Change only the standard `theme` selection to `theme-classic-modern`.
-From `TestApp`, run `app refresh` and `app build development` through `$themeCmd`.
-Stop on failure. Verify the loaded manifest and stylesheet hashes.
+From `TestApp`, run `app refresh` and `app build development` and `app build production` through
+`$themeCmd`. Stop on failure. Verify the loaded manifest and stylesheet hashes for each mode.
 From the repository root, capture with the same run and environment:
 
 ```powershell
@@ -142,13 +143,13 @@ Do not accept this baseline until G0 is verified and all required comparisons pa
 ## 5. Verify Rollback and Compare
 
 Restore the recorded original `theme` value.
-Refresh and rebuild through Cmd. Do not edit components, scripts, or legacy CSS.
+Refresh and build development and production through Cmd. Do not edit components, scripts, or legacy CSS.
 Then run from the repository root. Set `COMPAT_SELECTION_RUN` to the selection evidence run ID.
 
 ```powershell
 $env:COMPAT_THEME = 'rollback'
 npm run compat:capture
-$env:COMPAT_SELECTION_RUN = 'revalidation-final'
+$env:COMPAT_SELECTION_RUN = 'selection-check-001'
 npm run compat:compare
 npm run compat:report
 ```
@@ -157,9 +158,17 @@ Expected: Rollback matches the original. Source hashes are unchanged.
 All required categories pass. G0 and G1 evidence permit G2 acceptance.
 If G0 is missing, the report must remain blocked even when demo comparisons match.
 
+Repeat the original, derived, and rollback sequence for production.
+Use `app build production`, serve `TestApp/build/production/TestApp`, and set
+`COMPAT_BUILD_MODE=production` and `COMPAT_BASE_URL=http://localhost:1842/`.
+Use a separate run ID. Keep its references separate from development.
+
 ## 6. Validate Modernization and Release
 
-Start only after G2 passes. Define and approve one change group.
+Start only after G2 passes. Define one change group in
+`artifacts/compatibility/<run>/approvals.json` before edits. Record its goal, scope, affected cases,
+variable and asset changes, risks, tests, rollback, reviewer, and date. Obtain reviewer approval.
+Do not treat a planned goal as approval.
 Apply groups in FR-026 order. Build with the replacement selected.
 Use a new `COMPAT_RUN`, set `COMPAT_PHASE` to `modernization`, and set `COMPAT_THEME` to `modernized`.
 Link immutable original references and the approved goal in the run manifest.
@@ -168,7 +177,9 @@ Do not update the original baseline to make a modernization difference disappear
 
 Repeat with `app build production` and `COMPAT_BUILD_MODE=production`.
 Serve its actual generated page and set `COMPAT_BASE_URL` to that page.
-Use an original/replacement/rollback production pair and the full matrix.
+Build and capture the original, replacement, and rollback in production.
+Use a new run ID, the production URL, and the full matrix for each role.
+Keep the production references separate from development references.
 Do not compare development evidence to production evidence as one pair.
 
 Expected: Approved paint differences only. No unapproved geometry or CSS contract differences.
