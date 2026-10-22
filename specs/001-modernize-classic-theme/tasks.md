@@ -329,7 +329,10 @@ Do not mark a task complete until its stated evidence exists.
 The focused demo diagnostic completed two runs of 40 collapsed-panel captures.
 Both current readiness and the proposed geometry-read delay produced unstable counts.
 Reject that proposed correction. Keep T076 open and G1/G2 blocked.
-The runner and eight browser traces support further investigation.
-Next, repeat against isolated Classic output and record animation completion events.
+The original Classic reference also produced unstable counts in 40 captures.
+All four viewport and DPR combinations vary under both readiness methods.
+The guarded diagnostic restored the Modernized selection byte for byte.
+Its development rebuild passed. The instability is not unique to Modernized.
+G1 and G2 remain blocked. Refine the measurement boundary using action and animation events.
 The 52 Node.js compatibility checks passed. Production checks remain skipped.
 See [T076 diagnostic evidence](evidence/t076-layout-diagnostic.md).

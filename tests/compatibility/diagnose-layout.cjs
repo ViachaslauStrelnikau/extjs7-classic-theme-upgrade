@@ -2,12 +2,18 @@ const fs = require('node:fs');
 const path = require('node:path');
 const Module = require('node:module');
 const { createHash } = require('node:crypto');
+const http = require('node:http');
+const { createReadStream, statSync } = require('node:fs');
 const { chromium } = require('@playwright/test');
 const root = path.resolve(__dirname, '../..');
-const outputDirectory = process.argv[2];
-if (!outputDirectory) throw new Error('Supply a new diagnostic output directory.');
-fs.mkdirSync(outputDirectory, { recursive: false });
-const baseUrl = process.argv[3] || 'http://localhost:1841/';
+const outputDirectory = process.argv[2] && path.resolve(process.argv[2]);
+if (!outputDirectory) throw new Error('Supply a diagnostic output directory.');
+if (fs.existsSync(outputDirectory) && fs.readdirSync(outputDirectory).length > 0) {
+    throw new Error('The diagnostic output directory must be empty.');
+}
+fs.mkdirSync(outputDirectory, { recursive: true });
+let baseUrl = process.argv[3];
+let server = null;
 const file = path.join(root, 'tests/compatibility/capture.spec.js');
 const fullSource = fs.readFileSync(file, 'utf8');
 const marker = "test('captures versioned compatibility evidence'";
@@ -32,6 +38,28 @@ function harness(skip) {
     return loaded.exports;
 }
 (async () => {
+    if (process.env.COMPAT_DIAGNOSTIC_ROOT) {
+        const serverRoot = path.resolve(root, process.env.COMPAT_DIAGNOSTIC_ROOT);
+        server = http.createServer((request, response) => {
+            try {
+                const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
+                let target = path.resolve(serverRoot, `.${pathname}`);
+                if (target !== serverRoot && !target.startsWith(`${serverRoot}${path.sep}`)) {
+                    response.writeHead(403).end();
+                    return;
+                }
+                if (statSync(target).isDirectory()) target = path.join(target, 'index.html');
+                const types = { '.css': 'text/css', '.gif': 'image/gif', '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.woff': 'font/woff', '.woff2': 'font/woff2' };
+                response.setHeader('Content-Type', types[path.extname(target)] || 'application/octet-stream');
+                createReadStream(target).on('error', () => response.writeHead(404).end()).pipe(response);
+            } catch {
+                response.writeHead(404).end();
+            }
+        });
+        await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+        baseUrl = `http://127.0.0.1:${server.address().port}/`;
+    }
+    if (!baseUrl) baseUrl = 'http://localhost:1841/';
     const browser = await chromium.launch();
     const results = [];
     try {
@@ -101,6 +129,7 @@ function harness(skip) {
         }
     } finally {
         await browser.close();
+        if (server) await new Promise(resolve => server.close(resolve));
     }
 })().catch(error => {
     console.error(error);
