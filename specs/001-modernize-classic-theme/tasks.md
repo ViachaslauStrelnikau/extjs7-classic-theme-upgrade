@@ -333,6 +333,7 @@ The original Classic reference also produced unstable counts in 40 captures.
 All four viewport and DPR combinations vary under both readiness methods.
 The guarded diagnostic restored the Modernized selection byte for byte.
 Its development rebuild passed. The instability is not unique to Modernized.
-G1 and G2 remain blocked. Refine the measurement boundary using action and animation events.
+Action-boundary traces show all layout events during the collapse and varying counts over similar durations.
+This still cannot isolate theme-caused layout work. Keep G1 and G2 blocked until the metric separates that effect.
 The 52 Node.js compatibility checks passed. Production checks remain skipped.
 See [T076 diagnostic evidence](evidence/t076-layout-diagnostic.md).

@@ -67,7 +67,8 @@ function harness(skip) {
             const api = harness(skip);
             for (const viewport of [{ width: 1280, height: 900 }, { width: 900, height: 1280 }]) {
                 for (const dpr of [1, 2]) {
-                    for (let repeat = 1; repeat <= 5; repeat++) {
+                    const repeatLimit = process.env.COMPAT_DIAGNOSTIC_TRACE_ONLY ? 1 : 5;
+                    for (let repeat = 1; repeat <= repeatLimit; repeat++) {
                         const context = await browser.newContext({ viewport, deviceScaleFactor: dpr, locale: 'en-US', timezoneId: 'UTC' });
                         const page = await context.newPage();
                         const cdp = await context.newCDPSession(page);
@@ -87,9 +88,11 @@ function harness(skip) {
                             categories: 'devtools.timeline,blink.user_timing',
                             transferMode: 'ReturnAsStream'
                         });
+                        await page.evaluate(() => performance.mark('compat-layout-action-start'));
                         const before = api.extractMetrics(await cdp.send('Performance.getMetrics'));
                         await api.setCaptureState(page, definition, 'collapsed');
                         await api.waitForStableFrames(page, definition);
+                        await page.evaluate(() => performance.mark('compat-layout-animation-settled'));
                         const after = api.extractMetrics(await cdp.send('Performance.getMetrics'));
                         if (repeat === 1) {
                             const complete = new Promise(resolve => cdp.once('Tracing.tracingComplete', resolve));

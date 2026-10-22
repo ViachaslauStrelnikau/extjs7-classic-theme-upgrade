@@ -69,6 +69,24 @@ It shows the instability is not unique to Modernized. It does not prove equal co
 The alternate readiness method also remains unstable against Classic.
 No counter correction is supported by these captures.
 
+## Action-Boundary Traces
+
+Eight more traces per theme use markers immediately before the collapse action and after the
+animation queue and stable-frame check complete. All recorded `Layout` events fell between those
+markers. The action spans lasted 313–332 ms. The trace count matched the `LayoutCount` delta.
+
+| Theme | Readiness method | 1280x900 DPR 1 | 1280x900 DPR 2 | 900x1280 DPR 1 | 900x1280 DPR 2 |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Classic | Current | 20 | 17 | 20 | 20 |
+| Classic | Skip reads during animation | 20 | 20 | 20 | 20 |
+| Modernized | Current | 20 | 20 | 19 | 18 |
+| Modernized | Skip reads during animation | 19 | 16 | 20 | 19 |
+
+The count varies within the same action boundary and duration range.
+The variation remains on the Classic reference. This diagnostic cannot assign it to the theme.
+It also cannot quantify extra theme-caused work while browser frame scheduling varies.
+Keep the exact layout-work comparison blocked until the measurement isolates that effect.
+
 ## Reproduce
 
 Select the theme and build it with Sencha Cmd. Stop the watcher first.
@@ -90,6 +108,8 @@ Therefore, these counts cannot replace full comparison evidence.
 - [First Modernized raw counts](../../../artifacts/compatibility/t076-layout-diagnostic-20261022/results.json).
 - [Traced Modernized raw counts](../../../artifacts/compatibility/t076-layout-traced-20261022/results.json).
 - [Classic raw counts](../../../artifacts/compatibility/t076-classic-layout-20261022/captures/results.json).
+- [Classic action traces](../../../artifacts/compatibility/t076-classic-layout-20261022/captures-marked2/results.json).
+- [Modernized action traces](../../../artifacts/compatibility/t076-modern-marked2-20261022/results.json).
 - [Example current-method trace](../../../artifacts/compatibility/t076-classic-layout-20261022/captures/trace-false-1280-1.json).
 - [Example alternate-method trace](../../../artifacts/compatibility/t076-classic-layout-20261022/captures/trace-true-1280-1.json).
 
