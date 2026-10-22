@@ -323,3 +323,13 @@ Do not mark a task complete until its stated evidence exists.
 - [ ] T084 [HIGH] Complete the toolbar container surface required by FR-014 and AC-004. T045 and T046 cover toolbar buttons but not the toolbar surface. The Classic parent still defines `$toolbar-background-gradient` in `TestApp/ext/classic/theme-classic/sass/var/toolbar/Toolbar.scss`, and the replacement has no toolbar container variables. Obtain scoped demo-only approval before changing this surface. Then update only approved paint variables in `TestApp/packages/local/theme-classic-modern/sass/var/toolbar/Toolbar.scss` and validate toolbar states, geometry, CSS, interactions, screenshots, and rollback before accepting T047/G3 (partial).
   **Approval**: The project owner approved the demo-only toolbar gradient change on 2026-10-21. See [approved exceptions](evidence/approved-exceptions.md).
   **Partial evidence**: The development build passed. The Playwright run passed 40/40 tests. The toolbar delta found zero direct geometry, unapproved CSS, or interaction differences. It changed only the toolbar background image. Keep T084 open. G0, G2, G3, and G4 remain blocked. G1 is not-run. See [T084 toolbar evidence](evidence/t084-toolbar-demo.md).
+
+## T076 Investigation Update — 2026-10-22
+
+The focused demo diagnostic completed two runs of 40 collapsed-panel captures.
+Both current readiness and the proposed geometry-read delay produced unstable counts.
+Reject that proposed correction. Keep T076 open and G1/G2 blocked.
+The runner and eight browser traces support further investigation.
+Next, repeat against isolated Classic output and record animation completion events.
+The 52 Node.js compatibility checks passed. Production checks remain skipped.
+See [T076 diagnostic evidence](evidence/t076-layout-diagnostic.md).
