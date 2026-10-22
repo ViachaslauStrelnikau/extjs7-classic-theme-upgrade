@@ -2,7 +2,7 @@
 
 **Date**: 2026-10-22
 
-**Status**: Partial investigation. T076 remains open.
+**Status**: Demo investigation complete. G1 and G2 remain blocked.
 
 ## Method
 
@@ -131,12 +131,11 @@ Therefore, these counts cannot replace full comparison evidence.
 - [Example alternate-method trace](../../../artifacts/compatibility/t076-classic-layout-20261022/captures/trace-true-1280-1.json).
 
 The artifacts are local ignored evidence. The table preserves the first-run counts in Git.
-The Node.js compatibility suite passed 52 of 52 tests. JavaScript syntax checks passed.
+The Node.js compatibility suite passed 53 of 53 tests. JavaScript syntax checks passed.
 
-Record action and animation completion events with trace boundaries.
-Use traces to test a counter boundary that excludes setup work but keeps the full animation.
-Validate any correction against five fresh repeats in each environment.
-Do not disable animations, subtract work, add tolerance, or choose a passing repeat.
-Keep T035–T037, T067, T076, G1, and G2 open or blocked as applicable.
+The investigation tested natural timing, skipped geometry reads during animation, traces,
+and a virtual clock. None produced a valid stable layout comparison. Do not disable
+animations, subtract work, add tolerance, or choose a passing repeat.
+The demo investigation is complete. Keep T035–T037, T067, G1, and G2 open or blocked.
 Firefox measurement remains unsupported. Production checks remain skipped.
 No visual group or screenshot reference was accepted.
