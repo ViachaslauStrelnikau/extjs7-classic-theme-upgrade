@@ -337,3 +337,5 @@ Action-boundary traces show all layout events during the collapse and varying co
 This still cannot isolate theme-caused layout work. Keep G1 and G2 blocked until the metric separates that effect.
 The 52 Node.js compatibility checks passed. Production checks remain skipped.
 See [T076 diagnostic evidence](evidence/t076-layout-diagnostic.md).
+The virtual-time probe yielded four layouts per capture only after it compressed the 400 ms budget
+into 4 to 6 ms of wall time. Reject it as acceptance evidence. See the [synthetic-time result](evidence/t076-layout-diagnostic.md#synthetic-time-experiment).

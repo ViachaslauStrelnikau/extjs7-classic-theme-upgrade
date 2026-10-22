@@ -87,6 +87,22 @@ The variation remains on the Classic reference. This diagnostic cannot assign it
 It also cannot quantify extra theme-caused work while browser frame scheduling varies.
 Keep the exact layout-work comparison blocked until the measurement isolates that effect.
 
+## Synthetic-Time Experiment
+
+On 2026-10-22, a diagnostic used the Chrome DevTools Protocol (CDP) virtual clock.
+It paused virtual time before collapse and advanced it by 400 milliseconds.
+The run covered 20 Modernized captures across the four viewport and DPR combinations.
+Each capture ended with no active Ext JS animations.
+
+All captures reported four layouts. Each reported five or six style recalculations.
+The 400 millisecond virtual budget elapsed in 4 to 6 milliseconds of wall time.
+Natural collapse captures took 313 to 332 milliseconds and recorded 15 to 20 layouts.
+
+This result is not valid compatibility evidence. The virtual clock compressed the animation
+and changed its frame cadence. Do not use it to accept the layout-work requirement or to replace
+natural animation captures. Keep the experiment diagnostic only.
+See the [raw virtual-time results](../../../artifacts/compatibility/t076-virtual-time-modern-20261022/results.json).
+
 ## Reproduce
 
 Select the theme and build it with Sencha Cmd. Stop the watcher first.
@@ -98,6 +114,7 @@ node tests/compatibility/diagnose-layout.cjs artifacts/compatibility/t076-layout
 ```
 
 The runner loads the actual capture helpers without registering their acceptance test.
+Set `COMPAT_DIAGNOSTIC_VIRTUAL_TIME=1` only to reproduce the rejected synthetic-time experiment.
 It records the loaded theme, browser version, helper hash, counters, and eight traces.
 It does not verify a build manifest or produce acceptance records.
 Its counter interval excludes the full capture's font/image recheck and state assertion.

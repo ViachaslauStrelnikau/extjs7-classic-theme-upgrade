@@ -38,6 +38,9 @@ function harness(skip) {
     return loaded.exports;
 }
 (async () => {
+    // Synthetic time tests count stability only; it is not natural-frame acceptance evidence.
+    const virtualTime = process.env.COMPAT_DIAGNOSTIC_VIRTUAL_TIME === '1';
+    const methods = virtualTime ? [false] : [false, true];
     if (process.env.COMPAT_DIAGNOSTIC_ROOT) {
         const serverRoot = path.resolve(root, process.env.COMPAT_DIAGNOSTIC_ROOT);
         server = http.createServer((request, response) => {
@@ -63,7 +66,7 @@ function harness(skip) {
     const browser = await chromium.launch();
     const results = [];
     try {
-        for (const skip of [false, true]) {
+        for (const skip of methods) {
             const api = harness(skip);
             for (const viewport of [{ width: 1280, height: 900 }, { width: 900, height: 1280 }]) {
                 for (const dpr of [1, 2]) {
@@ -83,6 +86,7 @@ function harness(skip) {
                         };
                         await api.navigateToCase(page, baseUrl, definition.caseId);
                         await api.waitForStableFrames(page, definition);
+                        if (virtualTime) await cdp.send('Emulation.setVirtualTimePolicy', { policy: 'pause' });
                         // Trace one repeat per environment. Trace overhead is part of this diagnostic.
                         if (repeat === 1) await cdp.send('Tracing.start', {
                             categories: 'devtools.timeline,blink.user_timing',
@@ -91,7 +95,27 @@ function harness(skip) {
                         await page.evaluate(() => performance.mark('compat-layout-action-start'));
                         const before = api.extractMetrics(await cdp.send('Performance.getMetrics'));
                         await api.setCaptureState(page, definition, 'collapsed');
-                        await api.waitForStableFrames(page, definition);
+                        let virtualTimeResult = null;
+                        if (virtualTime) {
+                            const budgetExpired = new Promise((resolve, reject) => {
+                                const timeout = setTimeout(() => reject(new Error('Virtual-time budget did not expire.')), 10000);
+                                cdp.once('Emulation.virtualTimeBudgetExpired', event => {
+                                    clearTimeout(timeout);
+                                    resolve(event);
+                                });
+                            });
+                            const wallStart = Date.now();
+                            const budgetMs = 400;
+                            await cdp.send('Emulation.setVirtualTimePolicy', {
+                                policy: 'advance', budget: budgetMs, maxVirtualTimeTaskStarvationCount: 1000
+                            });
+                            await budgetExpired;
+                            const activeAnimations = await page.evaluate(() => Ext.fx.Manager.items.length);
+                            if (activeAnimations !== 0) throw new Error(`Virtual-time budget ended with ${activeAnimations} active animations.`);
+                            virtualTimeResult = { budgetMs, wallDurationMs: Date.now() - wallStart, activeAnimations };
+                        } else {
+                            await api.waitForStableFrames(page, definition);
+                        }
                         await page.evaluate(() => performance.mark('compat-layout-animation-settled'));
                         const after = api.extractMetrics(await cdp.send('Performance.getMetrics'));
                         if (repeat === 1) {
@@ -111,6 +135,7 @@ function harness(skip) {
                         const row = {
                             skipGeometryDuringAnimation: skip, viewport, dpr, repeat,
                             traced: repeat === 1,
+                            virtualTime: virtualTimeResult,
                             theme: await page.evaluate(() => Ext.manifest.theme),
                             work: Object.fromEntries(Object.keys(before).map(key => [key, after[key] - before[key]]))
                         };
