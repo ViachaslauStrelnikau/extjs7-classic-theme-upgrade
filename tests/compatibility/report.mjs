@@ -87,6 +87,42 @@ function summarizeSuiteCoverage(suiteEvidence, expectedRunId) {
     };
 }
 
+function summarizeEnvironments(environmentEvidence) {
+    return (Array.isArray(environmentEvidence?.environments) ? environmentEvidence.environments : []).map((item) => ({
+        environmentId: item.environmentId,
+        browserEngine: item.browserEngine,
+        browserVersion: item.browserVersion,
+        viewport: item.viewport,
+        actualDpr: item.actualDpr,
+        buildMode: item.buildMode
+    }));
+}
+
+function summarizeRawPairs(rawPairEvidence) {
+    return Object.entries(rawPairEvidence?.pairs || {}).map(([role, pair]) => ({
+        role,
+        captures: pair.captures || 0,
+        geometry: pair.geometry || {},
+        css: pair.css || {},
+        behavior: pair.behavior || {},
+        visual: pair.visual || {},
+        layout: pair.layout || {}
+    }));
+}
+
+function summarizeFailures(...sources) {
+    const entries = sources.flatMap(({ source, values }) => (Array.isArray(values) ? values : []).map((value) => {
+        if (typeof value === 'string') return { source, summary: value, resolution: 'No resolution is recorded.' };
+        return {
+            source,
+            summary: value.summary || value.message || value.error || value.reason || JSON.stringify(value),
+            resolution: value.resolution || value.resolvedBy || value.outcome || 'No resolution is recorded.',
+            evidencePath: value.evidencePath || null
+        };
+    }));
+    return entries.filter((item, index) => entries.findIndex((candidate) => candidate.source === item.source && candidate.summary === item.summary) === index);
+}
+
 async function safeReadJson(filePath) {
     try {
         return await readJson(filePath);
@@ -177,7 +213,11 @@ function criterionEvidence(id, runId, selection, selectionRunId) {
     if (['AC-001', 'AC-013'].includes(id)) return [packagePath, 'TestApp/packages/local/theme-classic-modern/README.md'];
     if (['AC-002', 'AC-008', 'AC-011', 'AC-012'].includes(id) && selection) return [`${selectionPath}/results.json`, `${selectionPath}/development/derived/manifest.json`, `${selectionPath}/production/derived/manifest.json`, `${selectionPath}/development/rollback/manifest.json`, `${selectionPath}/production/rollback/manifest.json`];
     if (id === 'AC-014') return [productionPath, `${runPath}/results.json`];
-    return [`${runPath}/results.json`, productionPath];
+    const evidence = [`${runPath}/results.json`, productionPath];
+    if (['AC-003', 'AC-004', 'AC-005', 'AC-006', 'AC-007', 'AC-009', 'AC-010'].includes(id)) {
+        evidence.push(`${runPath}/development/raw-pair-comparison.json`);
+    }
+    return evidence;
 }
 
 function successStatus(criteria, acceptanceCriteria) {
@@ -212,12 +252,52 @@ function renderMarkdown(report, rootDir) {
     for (const [mode, item] of Object.entries(report.buildModes)) {
         lines.push(`| ${mode} | ${item.comparisonCount} | ${item.geometry} | ${item.css} | ${item.behavior} | ${item.visual} |`);
     }
+    lines.push('', '## Capture environments', '', '| Environment | Browser | Version | Viewport | DPR | Build mode |', '| --- | --- | --- | --- | ---: | --- |');
+    if (report.environments.length) {
+        for (const item of report.environments) {
+            lines.push(`| ${item.environmentId} | ${item.browserEngine} | ${item.browserVersion} | ${item.viewport?.width}x${item.viewport?.height} | ${item.actualDpr} | ${item.buildMode} |`);
+        }
+    } else {
+        lines.push('| No environment records | not recorded | not recorded | not recorded | not recorded | not recorded |');
+    }
+    lines.push('', '## Raw pair summaries', '', '| Pair | Captures | Geometry (pass/fail/blocked) | CSS (pass/fail) | Behavior (pass/fail) | Visual (pass/fail) | Layout (pass/fail/blocked) |', '| --- | ---: | --- | --- | --- | --- | --- |');
+    if (report.rawPairs.length) {
+        for (const item of report.rawPairs) {
+            lines.push(`| ${item.role} | ${item.captures} | ${item.geometry.pass || 0}/${item.geometry.fail || 0}/${item.geometry.blocked || 0} | ${item.css.pass || 0}/${item.css.fail || 0} | ${item.behavior.pass || 0}/${item.behavior.fail || 0} | ${item.visual.pass || 0}/${item.visual.fail || 0} | ${item.layout.pass || 0}/${item.layout.fail || 0}/${item.layout.blocked || 0} |`);
+        }
+        lines.push('', 'These summaries do not replace linked formal comparison records or pass blocked gates.');
+    } else {
+        lines.push('| No raw pair summaries | 0 | blocked | blocked | blocked | blocked | blocked |');
+    }
+    lines.push('', '## Approved paint differences', '', '| Group | Status | Allowed properties | Scope | Variable files |', '| --- | --- | --- | --- | --- |');
+    if (report.approvedPaint.length) {
+        for (const item of report.approvedPaint) {
+            lines.push(`| ${item.changeId} | ${item.status} | ${item.allowedProperties.join(', ') || 'none'} | ${item.scope} | ${item.variableChanges.join('<br>') || 'none'} |`);
+        }
+    } else {
+        lines.push('| No paint approval record | not-run | none | none | none |');
+    }
+    lines.push('', 'Approval records define scope. They do not pass visual review or compatibility gates.');
     lines.push('', '## Playwright suites', '', '| Suite | Status | Passed / total | Evidence |', '| --- | --- | ---: | --- |');
     for (const item of report.suiteCoverage.suites) {
         const outcome = item.outcome ? `${item.outcome.passed}/${item.outcome.total}` : '0/0';
         const roleEvidence = item.evidencePaths.map((file) => `[${file}](${path.relative(path.dirname(report.reportPath), path.resolve(rootDir, 'artifacts', 'compatibility', report.runId, file)).replaceAll(path.sep, '/')})`);
         const evidence = ['[suite-results.json](suite-results.json)', ...roleEvidence].join(', ');
         lines.push(`| ${item.displayName} | ${item.status} | ${outcome} | ${evidence} |`);
+    }
+    lines.push('', '## Failed attempts and resolutions', '', '| Source | Finding | Resolution |', '| --- | --- | --- |');
+    if (report.failureHistory.length) {
+        for (const item of report.failureHistory) {
+            const evidence = item.evidencePath
+                ? `[evidence](${path.relative(path.dirname(report.reportPath), path.resolve(rootDir, item.evidencePath)).replaceAll(path.sep, '/')})`
+                : 'none';
+            lines.push(`| ${item.source} | ${item.summary} | ${item.resolution} ${evidence} |`);
+        }
+    } else {
+        lines.push('| No failed-attempt records supplied | No failure record was present in the run data. | Not applicable. |');
+    }
+    if (report.rawPairs.length) {
+        lines.push('', 'The layout-method experiments and their resolutions are recorded in [T076 layout diagnostics](../../../specs/001-modernize-classic-theme/evidence/t076-layout-diagnostic.md). Synthetic time was rejected because it changed animation timing. Natural-time layout counts remain unstable.');
     }
     lines.push('', '## Limitations', '');
     for (const item of report.limitations) lines.push(`- ${item}`);
@@ -279,7 +359,14 @@ function renderHtml(report, rootDir) {
         };
         return `<tr><td>${escapeHtml(result.changeId)}</td><td>${escapeHtml(result.caseId)}</td><td>${escapeHtml(result.project)}</td><td>${escapeHtml(result.state)}</td><td>${escapeHtml(result.status)}</td><td>${escapeHtml(result.modernized?.status || 'blocked')}</td><td>${escapeHtml(result.rollback?.status || 'blocked')}</td><td>${[differenceLink('modernized'), differenceLink('rollback')].filter(Boolean).join('<br>') || 'none'}</td></tr>`;
     }).join('') || '<tr><td colspan="8">No case results recorded; status blocked.</td></tr>';
-    return `<!doctype html><html lang="en"><meta charset="utf-8"><title>${escapeHtml(report.runId)} compatibility report</title><h1>Compatibility report: ${escapeHtml(report.runId)}</h1><p>Status: ${escapeHtml(report.status)}</p><h2>Acceptance criteria</h2><table><thead><tr><th>ID</th><th>Criterion</th><th>Status</th><th>Evidence</th></tr></thead><tbody>${rows}</tbody></table><h2>Success criteria</h2><table><thead><tr><th>ID</th><th>Criterion</th><th>Status</th><th>Acceptance criteria</th></tr></thead><tbody>${successRows}</tbody></table><h2>Gates</h2><ul>${gates}</ul><h2>Playwright suites</h2><table><thead><tr><th>Suite</th><th>Status</th><th>Passed / total</th><th>Evidence</th></tr></thead><tbody>${suiteRows}</tbody></table><h2>Limitations</h2><ul>${limitations}</ul><h2>Modernization groups</h2><table><thead><tr><th>Group</th><th>Sequence</th><th>Approval</th><th>Comparison</th></tr></thead><tbody>${groupRows}</tbody></table><h2>Modernization case results</h2><table><thead><tr><th>Group</th><th>Case</th><th>Project</th><th>State</th><th>Result</th><th>Modernized</th><th>Rollback</th><th>Difference images</th></tr></thead><tbody>${caseRows}</tbody></table></html>`;
+    const environmentRows = report.environments.map((item) => `<tr><td>${escapeHtml(item.environmentId)}</td><td>${escapeHtml(item.browserEngine)}</td><td>${escapeHtml(item.browserVersion)}</td><td>${escapeHtml(`${item.viewport?.width}x${item.viewport?.height}`)}</td><td>${escapeHtml(item.actualDpr)}</td><td>${escapeHtml(item.buildMode)}</td></tr>`).join('') || '<tr><td colspan="6">No environment records.</td></tr>';
+    const pairRows = report.rawPairs.map((item) => `<tr><td>${escapeHtml(item.role)}</td><td>${escapeHtml(item.captures)}</td><td>${escapeHtml(`${item.geometry.pass || 0}/${item.geometry.fail || 0}/${item.geometry.blocked || 0}`)}</td><td>${escapeHtml(`${item.css.pass || 0}/${item.css.fail || 0}`)}</td><td>${escapeHtml(`${item.behavior.pass || 0}/${item.behavior.fail || 0}`)}</td><td>${escapeHtml(`${item.visual.pass || 0}/${item.visual.fail || 0}`)}</td><td>${escapeHtml(`${item.layout.pass || 0}/${item.layout.fail || 0}/${item.layout.blocked || 0}`)}</td></tr>`).join('') || '<tr><td colspan="7">No raw pair summaries.</td></tr>';
+    const paintRows = report.approvedPaint.map((item) => `<tr><td>${escapeHtml(item.changeId)}</td><td>${escapeHtml(item.status)}</td><td>${escapeHtml(item.allowedProperties.join(', ') || 'none')}</td><td>${escapeHtml(item.scope)}</td><td>${escapeHtml(item.variableChanges.join(', ') || 'none')}</td></tr>`).join('') || '<tr><td colspan="5">No paint approval record.</td></tr>';
+    const failureRows = report.failureHistory.map((item) => {
+        const evidence = item.evidencePath ? ` <a href="${escapeHtml(path.relative(path.dirname(report.reportPath), path.resolve(rootDir, item.evidencePath)).replaceAll(path.sep, '/'))}">evidence</a>` : '';
+        return `<tr><td>${escapeHtml(item.source)}</td><td>${escapeHtml(item.summary)}</td><td>${escapeHtml(item.resolution)}${evidence}</td></tr>`;
+    }).join('') || '<tr><td colspan="3">No failed-attempt records supplied.</td></tr>';
+    return `<!doctype html><html lang="en"><meta charset="utf-8"><title>${escapeHtml(report.runId)} compatibility report</title><h1>Compatibility report: ${escapeHtml(report.runId)}</h1><p>Status: ${escapeHtml(report.status)}</p><h2>Acceptance criteria</h2><table><thead><tr><th>ID</th><th>Criterion</th><th>Status</th><th>Evidence</th></tr></thead><tbody>${rows}</tbody></table><h2>Success criteria</h2><table><thead><tr><th>ID</th><th>Criterion</th><th>Status</th><th>Acceptance criteria</th></tr></thead><tbody>${successRows}</tbody></table><h2>Gates</h2><ul>${gates}</ul><h2>Environment results</h2><table><thead><tr><th>Build mode</th><th>Comparisons</th><th>Geometry</th><th>CSS</th><th>Behavior</th><th>Visual</th></tr></thead><tbody>${Object.entries(report.buildModes).map(([mode, item]) => `<tr><td>${escapeHtml(mode)}</td><td>${escapeHtml(item.comparisonCount)}</td><td>${escapeHtml(item.geometry)}</td><td>${escapeHtml(item.css)}</td><td>${escapeHtml(item.behavior)}</td><td>${escapeHtml(item.visual)}</td></tr>`).join('')}</tbody></table><h2>Capture environments</h2><table><thead><tr><th>Environment</th><th>Browser</th><th>Version</th><th>Viewport</th><th>DPR</th><th>Build mode</th></tr></thead><tbody>${environmentRows}</tbody></table><h2>Raw pair summaries</h2><table><thead><tr><th>Pair</th><th>Captures</th><th>Geometry</th><th>CSS</th><th>Behavior</th><th>Visual</th><th>Layout</th></tr></thead><tbody>${pairRows}</tbody></table><h2>Approved paint differences</h2><table><thead><tr><th>Group</th><th>Status</th><th>Properties</th><th>Scope</th><th>Variable files</th></tr></thead><tbody>${paintRows}</tbody></table><h2>Playwright suites</h2><table><thead><tr><th>Suite</th><th>Status</th><th>Passed / total</th><th>Evidence</th></tr></thead><tbody>${suiteRows}</tbody></table><h2>Failed attempts and resolutions</h2><table><thead><tr><th>Source</th><th>Finding</th><th>Resolution</th></tr></thead><tbody>${failureRows}</tbody></table><h2>Limitations</h2><ul>${limitations}</ul><h2>Modernization groups</h2><table><thead><tr><th>Group</th><th>Sequence</th><th>Approval</th><th>Comparison</th></tr></thead><tbody>${groupRows}</tbody></table><h2>Modernization case results</h2><table><thead><tr><th>Group</th><th>Case</th><th>Project</th><th>State</th><th>Result</th><th>Modernized</th><th>Rollback</th><th>Difference images</th></tr></thead><tbody>${caseRows}</tbody></table></html>`;
 }
 
 export async function createReport({ runId, selectionRunId = null, rootDir = root } = {}) {
@@ -307,7 +394,13 @@ export async function createReport({ runId, selectionRunId = null, rootDir = roo
     }
     const productionInputs = await safeReadJson(path.join(runRoot, 'production-inputs.json'));
     const suiteEvidence = await safeReadJson(path.join(runRoot, 'suite-results.json'));
+    const environmentEvidence = await safeReadJson(path.join(runRoot, 'environments.json'));
+    const rawPairEvidence = await safeReadJson(path.join(runRoot, 'development', 'raw-pair-comparison.json'));
+    const approvalEvidence = await safeReadJson(path.join(runRoot, 'approvals.json'));
+    const failureHistoryEvidence = await safeReadJson(path.join(runRoot, 'failure-history.json'));
     const suiteCoverage = summarizeSuiteCoverage(suiteEvidence, runId);
+    const environments = summarizeEnvironments(environmentEvidence);
+    const rawPairs = summarizeRawPairs(rawPairEvidence);
     const g0 = productionInputs?.status === 'verified' ? 'passed' : 'blocked';
     const gates = {
         G0: g0,
@@ -340,10 +433,24 @@ export async function createReport({ runId, selectionRunId = null, rootDir = roo
         productionInputs?.status === 'verified' ? 'Production inputs are verified for this run.' : 'Production CSS, stylesheet order, theme inheritance, component states, and browser requirements are not verified. G0 is blocked.',
         selectionError ? `Selection evidence is invalid. ${selectionError}` : selection ? 'Selection and rollback evidence passed its manifest checks.' : 'Selection and rollback evidence was not supplied. Do not accept AC-002.',
         ...(suiteCoverage.status === 'complete' ? [] : [`CSS compatibility and interaction suites are incomplete. ${suiteCoverage.validationError || 'See suite-results.json.'} Do not accept G1 or G2.`]),
+        ...(rawPairs.length ? ['Raw pair summaries are diagnostic unless the formal comparison records link the same captures and manifests. Review their blocked counts and differences below.'] : []),
         'Firefox layout-shift records do not measure every layout pass. Keep affected acceptance blocked.',
+        'Sencha Cmd build logs report missing navigation theme images. Review the build logs before visual acceptance.',
         modernization ? `Modernization comparison status is ${modernization.status || 'blocked'}; see the group and case results below.` : 'Modernization comparison evidence was not supplied for this run.',
         'Demo build results do not prove production compatibility.'
     ];
+    const failureHistory = summarizeFailures(
+        { source: 'project history', values: failureHistoryEvidence?.failures || [] },
+        { source: 'comparison run', values: [...(combined.historicalFailures || []), ...Object.values(buildModes).flatMap((mode) => [...(mode?.errors || []), ...(mode?.historicalFailures || [])])] },
+        { source: 'modernization run', values: [...(modernization?.errors || []), ...(modernization?.historicalFailures || [])] }
+    );
+    const approvedPaint = (approvalEvidence?.changeGroups || []).map((group) => ({
+        changeId: group.changeId,
+        status: group.status,
+        allowedProperties: group.approval?.allowedProperties || [],
+        scope: group.approval?.scope || 'Approval scope not recorded.',
+        variableChanges: group.variableChanges || []
+    }));
     const report = {
         schemaVersion: 1,
         runId,
@@ -351,6 +458,10 @@ export async function createReport({ runId, selectionRunId = null, rootDir = roo
         gates: Object.entries(gates).map(([gateId, status]) => ({ gateId, status })),
         buildModes: summaryBuildModes,
         suiteCoverage,
+        environments,
+        rawPairs,
+        approvedPaint,
+        failureHistory,
         modernization,
         acceptanceCriteria,
         successCriteria: successCriteriaWithStatus,

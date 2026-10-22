@@ -80,6 +80,85 @@ test('reports completed compatibility suites with linked evidence', async () => 
     }
 });
 
+test('reports capture environments, raw pair counts, approved paint, and failed attempts', async () => {
+    const rootDir = await mkdtemp(path.join(os.tmpdir(), 'compatibility-report-capture-matrix-'));
+    try {
+        const runId = 'report-capture-matrix';
+        const runRoot = path.join(rootDir, 'artifacts', 'compatibility', runId);
+        await mkdir(path.join(runRoot, 'development'), { recursive: true });
+        await writeFile(path.join(runRoot, 'results.json'), JSON.stringify({
+            schemaVersion: 1,
+            runId,
+            buildModes: { development: { errors: ['Formal comparison needs linked role manifests.'], results: [] } },
+            historicalFailures: []
+        }));
+        await writeFile(path.join(runRoot, 'environments.json'), JSON.stringify({
+            schemaVersion: 1,
+            runId,
+            environments: [{
+                environmentId: 'firefox-dpr2-900x1280-development',
+                browserEngine: 'firefox',
+                browserVersion: '157.0',
+                viewport: { width: 900, height: 1280 },
+                actualDpr: 2,
+                buildMode: 'development'
+            }]
+        }));
+        await writeFile(path.join(runRoot, 'development', 'raw-pair-comparison.json'), JSON.stringify({
+            schemaVersion: 1,
+            runId,
+            pairs: {
+                modernized: {
+                    captures: 336,
+                    geometry: { pass: 167, fail: 1, blocked: 168 },
+                    css: { pass: 336, fail: 0 },
+                    behavior: { pass: 336, fail: 0 },
+                    visual: { pass: 0, fail: 336 },
+                    layout: { pass: 167, fail: 1, blocked: 168 }
+                }
+            }
+        }));
+        await writeFile(path.join(runRoot, 'approvals.json'), JSON.stringify({
+            schemaVersion: 1,
+            runId,
+            changeGroups: [{
+                changeId: 'paint-buttons',
+                status: 'approved',
+                variableChanges: ['sass/var/button/Button.scss'],
+                approval: { allowedProperties: ['background-color'], scope: 'Demo only.' }
+            }]
+        }));
+        await writeFile(path.join(runRoot, 'failure-history.json'), JSON.stringify({
+            schemaVersion: 1,
+            runId,
+            failures: [{
+                summary: 'A synthetic clock changed animation cadence.',
+                resolution: 'Reject it as compatibility evidence and retain natural-time captures.',
+                evidencePath: 'specs/001-modernize-classic-theme/evidence/t076-layout-diagnostic.md'
+            }]
+        }));
+
+        const result = await createReport({ runId, rootDir });
+        assert.equal(result.report.environments.length, 1);
+        assert.equal(result.report.rawPairs[0].captures, 336);
+        assert.equal(result.report.approvedPaint[0].allowedProperties[0], 'background-color');
+        assert.equal(result.report.failureHistory.length, 2);
+        assert.match(result.report.failureHistory[0].summary, /synthetic clock/);
+        assert.match(result.report.failureHistory[1].summary, /linked role manifests/);
+        const markdown = await readFile(result.markdownPath, 'utf8');
+        assert.match(markdown, /Capture environments/);
+        assert.match(markdown, /firefox-dpr2-900x1280-development/);
+        assert.match(markdown, /Raw pair summaries/);
+        assert.match(markdown, /Approved paint differences/);
+        assert.match(markdown, /Failed attempts and resolutions/);
+        assert.match(markdown, /T076 layout diagnostics/);
+        assert.match(markdown, /t076-layout-diagnostic\.md/);
+        assert.match(await readFile(result.htmlPath, 'utf8'), /Approved paint differences/);
+    } finally {
+        await rm(rootDir, { recursive: true, force: true });
+    }
+});
+
 test('links selection and rollback evidence to the selected run', async () => {
     const rootDir = await mkdtemp(path.join(os.tmpdir(), 'compatibility-selection-report-'));
     try {
