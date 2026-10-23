@@ -168,7 +168,7 @@ test('links selection and rollback evidence to the selected run', async () => {
         const sourceHashes = { 'TestApp/app.js': hash };
         const buildEntries = [];
         for (const [role, themeName] of [['derived', 'theme-classic-modern'], ['rollback', 'ext-theme-classic']]) {
-            for (const buildMode of ['development', 'production']) {
+            for (const buildMode of ['development']) {
                 const buildManifest = manifest(role, buildMode);
                 const manifestPath = `artifacts/compatibility/selection/selection-verified/${buildMode}/${role}/manifest.json`;
                 const outputPath = path.join(rootDir, manifestPath);
@@ -191,8 +191,16 @@ test('links selection and rollback evidence to the selected run', async () => {
         const result = await createReport({ runId: 'report-selection', selectionRunId: 'selection-verified', rootDir });
         const criterion = result.report.acceptanceCriteria.find((item) => item.id === 'AC-002');
         assert.equal(criterion.status, 'verified-demo');
+        assert.equal(result.report.acceptanceCriteria.find((item) => item.id === 'AC-011').status, 'verified-demo');
+        assert.equal(result.report.acceptanceCriteria.find((item) => item.id === 'AC-012').status, 'verified-demo');
         assert.ok(criterion.evidence.every((file) => file.includes('/selection/selection-verified/')));
-        assert.match(await readFile(result.htmlPath, 'utf8'), /\.\.\/selection\/selection-verified\/results\.json/);
+        const html = await readFile(result.htmlPath, 'utf8');
+        assert.match(html, /\.\.\/selection\/selection-verified\/results\.json/);
+        assert.match(html, /development\/derived\/manifest\.json/);
+        assert.match(html, /development\/rollback\/manifest\.json/);
+        assert.doesNotMatch(html, /production\/(?:derived|rollback)\/manifest\.json/);
+        assert.match(html, /development build manifest checks/);
+        assert.match(html, /Production selection and rollback builds were not run in this feature/);
         const badManifestPath = path.join(rootDir, 'artifacts', 'compatibility', 'selection', 'selection-verified', 'development', 'derived', 'manifest.json');
         await writeFile(badManifestPath, JSON.stringify({ invalid: true }));
         const invalid = await createReport({ runId: 'report-selection-invalid', selectionRunId: 'selection-verified', rootDir });

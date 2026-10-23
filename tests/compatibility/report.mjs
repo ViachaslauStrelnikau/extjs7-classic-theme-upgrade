@@ -143,8 +143,9 @@ async function readSelectionEvidence(rootDir, runId) {
         throw new Error('Selection result does not prove restoration of the original theme and source hashes.');
     }
     const builds = [...(result.replacementBuilds || []), ...(result.rollbackBuilds || [])];
-    if (builds.length !== 4) {
-        throw new Error('Selection result must include two replacement and two rollback builds.');
+    const modes = new Set(builds.map((item) => item.buildMode));
+    if (!modes.has('development') || [...modes].some((mode) => !['development', 'production'].includes(mode)) || builds.length !== 2 * modes.size) {
+        throw new Error('Selection result must include a development replacement and rollback pair. If production builds are present, include both production roles.');
     }
     const seen = new Set();
     for (const item of builds) {
@@ -172,7 +173,7 @@ async function readSelectionEvidence(rootDir, runId) {
         }
     }
     for (const role of ['derived', 'rollback']) {
-        for (const mode of ['development', 'production']) {
+        for (const mode of modes) {
             if (!seen.has(`${role}/${mode}`)) throw new Error(`Selection result is missing ${role}/${mode}.`);
         }
     }
@@ -188,7 +189,9 @@ function gateStatus(results, gateId) {
 }
 
 function criterionStatus(id, { packageCheck, selection, gates, results, hasModernized }) {
-    const selectionReady = Boolean(selection?.status === 'build-and-rollback-verified' && selection.replacementBuilds?.length === 2 && selection.rollbackBuilds?.length === 2);
+    const selectionReady = Boolean(selection?.status === 'build-and-rollback-verified'
+        && selection.replacementBuilds?.some((item) => item.buildMode === 'development')
+        && selection.rollbackBuilds?.some((item) => item.buildMode === 'development'));
     const g2Passed = gates.G0 === 'passed' && gates.G1 === 'passed' && gates.G2 === 'passed';
     if (id === 'AC-001') return packageCheck?.valid ? 'verified-demo' : 'fail';
     if (id === 'AC-002') return selectionReady ? 'verified-demo' : 'blocked';
@@ -210,8 +213,13 @@ function criterionEvidence(id, runId, selection, selectionRunId) {
     const selectionPath = `artifacts/compatibility/selection/${selectionRunId}`;
     const packagePath = 'TestApp/packages/local/theme-classic-modern/package.json';
     const productionPath = 'specs/001-modernize-classic-theme/evidence/production-inputs.md';
+    const selectionEvidence = selection ? [
+        `${selectionPath}/results.json`,
+        ...[...selection.replacementBuilds, ...selection.rollbackBuilds]
+            .map((item) => `${selectionPath}/${item.buildMode}/${item.role}/manifest.json`)
+    ] : [];
     if (['AC-001', 'AC-013'].includes(id)) return [packagePath, 'TestApp/packages/local/theme-classic-modern/README.md'];
-    if (['AC-002', 'AC-008', 'AC-011', 'AC-012'].includes(id) && selection) return [`${selectionPath}/results.json`, `${selectionPath}/development/derived/manifest.json`, `${selectionPath}/production/derived/manifest.json`, `${selectionPath}/development/rollback/manifest.json`, `${selectionPath}/production/rollback/manifest.json`];
+    if (['AC-002', 'AC-008', 'AC-011', 'AC-012'].includes(id) && selection) return selectionEvidence;
     if (id === 'AC-014') return [productionPath, `${runPath}/results.json`];
     const evidence = [`${runPath}/results.json`, productionPath];
     if (['AC-003', 'AC-004', 'AC-005', 'AC-006', 'AC-007', 'AC-009', 'AC-010'].includes(id)) {
@@ -429,9 +437,13 @@ export async function createReport({ runId, selectionRunId = null, rootDir = roo
             visual: entries.length ? categoriesFrom({ [mode]: current }, 'visual') : 'blocked'
         };
     }
+    const selectionModes = selection
+        ? [...new Set([...selection.replacementBuilds, ...selection.rollbackBuilds].map((item) => item.buildMode))].sort()
+        : [];
     const limitations = [
         productionInputs?.status === 'verified' ? 'Production inputs are verified for this run.' : 'Production input validation is deferred to the next independent spec. G0 remains blocked for production readiness.',
-        selectionError ? `Selection evidence is invalid. ${selectionError}` : selection ? 'Selection and rollback evidence passed its manifest checks.' : 'Selection and rollback evidence was not supplied. Do not accept AC-002.',
+        selectionError ? `Selection evidence is invalid. ${selectionError}` : selection ? `Selection and rollback evidence passed its ${selectionModes.join(' and ')} build manifest checks.` : 'Selection and rollback evidence was not supplied. Do not accept AC-002.',
+        ...(selection && !selectionModes.includes('production') ? ['Production selection and rollback builds were not run in this feature.'] : []),
         ...(suiteCoverage.status === 'complete' ? [] : [`CSS compatibility and interaction suites are incomplete. ${suiteCoverage.validationError || 'See suite-results.json.'} Do not accept G1 or G2.`]),
         ...(rawPairs.length ? ['Raw pair summaries are diagnostic unless the formal comparison records link the same captures and manifests. Review their blocked counts and differences below.'] : []),
         'Firefox layout-shift records do not measure every layout pass. Keep affected acceptance blocked.',
