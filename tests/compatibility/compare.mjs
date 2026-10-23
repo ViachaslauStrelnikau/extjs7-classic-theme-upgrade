@@ -8,7 +8,7 @@ import { captureVariants } from './matrix.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
-const allowedPaintPattern = /^(?:color|background(?:-color|-image)?|border-(?:top-|right-|bottom-|left-)?color|box-shadow|outline(?:-color|-style|-width|-offset)?)$/;
+const allowedPaintPattern = /^(?:color|background(?:-color|-image)?|border-(?:(?:top|right|bottom|left)-|(?:(?:block|inline)-(?:start|end)-))?color|box-shadow|outline(?:-color|-style|-width|-offset)?)$/;
 const generatedIdentityPattern = /^(?:id|data-ext-id)$/i;
 
 function stable(value) {

@@ -266,6 +266,51 @@ test('does not allow an unapproved paint change and allows only approved paint p
     assert.equal(accepted.layoutObservation.status, 'blocked');
 });
 
+test('allows approved logical border-color paint properties', async () => {
+    const original = capture({ computedStyles: { tip: {
+        'border-block-end-color': 'rgb(142, 170, 206)',
+        'border-block-start-color': 'rgb(142, 170, 206)',
+        'border-inline-end-color': 'rgb(142, 170, 206)',
+        'border-inline-start-color': 'rgb(142, 170, 206)',
+        'border-bottom-color': 'rgb(142, 170, 206)',
+        'border-left-color': 'rgb(142, 170, 206)',
+        'border-right-color': 'rgb(142, 170, 206)',
+        'border-top-color': 'rgb(142, 170, 206)'
+    } } });
+    const candidate = capture({
+        themeRole: 'modernized',
+        computedStyles: { tip: {
+            'border-block-end-color': 'rgb(199, 210, 223)',
+            'border-block-start-color': 'rgb(199, 210, 223)',
+            'border-inline-end-color': 'rgb(199, 210, 223)',
+            'border-inline-start-color': 'rgb(199, 210, 223)',
+            'border-bottom-color': 'rgb(199, 210, 223)',
+            'border-left-color': 'rgb(199, 210, 223)',
+            'border-right-color': 'rgb(199, 210, 223)',
+            'border-top-color': 'rgb(199, 210, 223)'
+        } }
+    });
+    const allowedProperties = [
+        'border-block-end-color',
+        'border-block-start-color',
+        'border-inline-end-color',
+        'border-inline-start-color',
+        'border-bottom-color',
+        'border-left-color',
+        'border-right-color',
+        'border-top-color'
+    ];
+    const result = await compareCaptures(original, candidate, {
+        phase: 'modernization',
+        approval: { allowedProperties },
+        referencePng: screenshot,
+        actualPng: screenshot,
+        layoutObservation: { sufficient: true }
+    });
+    assert.equal(result.css.status, 'pass');
+    assert.deepEqual(result.unexpectedDifferences, []);
+});
+
 test('rejects matching interaction failures in both theme captures', async () => {
     const failed = capture({ interactions: { expected: { clicked: true }, actual: { clicked: false }, missingAssets: [], pageErrors: [] } });
     const result = await compareCaptures(failed, failed, {

@@ -855,6 +855,18 @@ test('captures versioned compatibility evidence', async ({ browser }, testInfo) 
     if (casesDocument.runId !== inputs.runId || !Array.isArray(casesDocument.cases)) {
         throw new Error('The immutable case document does not match this capture run.');
     }
+    const requestedCaseIds = process.env.COMPAT_CASE_FILTER
+        ? process.env.COMPAT_CASE_FILTER.split(',').map((caseId) => caseId.trim()).filter(Boolean)
+        : casesDocument.cases.map((comparisonCase) => comparisonCase.caseId);
+    if (!requestedCaseIds.length || new Set(requestedCaseIds).size !== requestedCaseIds.length) {
+        throw new Error('COMPAT_CASE_FILTER must contain unique case IDs.');
+    }
+    const knownCaseIds = new Set(casesDocument.cases.map((comparisonCase) => comparisonCase.caseId));
+    const unknownCaseIds = requestedCaseIds.filter((caseId) => !knownCaseIds.has(caseId));
+    if (unknownCaseIds.length) {
+        throw new Error(`COMPAT_CASE_FILTER contains unknown cases: ${unknownCaseIds.join(', ')}.`);
+    }
+    const selectedCaseIds = new Set(requestedCaseIds);
 
     const expectedTheme = ['derived', 'modernized'].includes(inputs.themeRole) ? 'theme-classic-modern' : 'ext-theme-classic';
     const allLegacyRules = await readLegacyRules();
@@ -866,6 +878,7 @@ test('captures versioned compatibility evidence', async ({ browser }, testInfo) 
         const viewportEnvironmentRecords = [];
         const variantEvidencePaths = [];
         for (const comparisonCase of casesDocument.cases) {
+            if (!selectedCaseIds.has(comparisonCase.caseId)) continue;
             if (!sectionByCase[comparisonCase.caseId]) throw new Error(`No application section is mapped for ${comparisonCase.caseId}.`);
 
             for (const state of comparisonCase.states) {
@@ -1054,7 +1067,8 @@ test('captures versioned compatibility evidence', async ({ browser }, testInfo) 
             runId: inputs.runId,
             environment: viewportEnvironmentRecords[0],
             captureCount: variantEvidencePaths.filter((item) => item.endsWith('/capture.json')).length,
-            targetIds: Array.from(targetNames).sort()
+            targetIds: Array.from(targetNames).sort(),
+            caseIds: requestedCaseIds
         });
         const projectEvidencePath = path.join(outputDirectory, 'suite-evidence.json');
         await evidence.writeImmutableJson(projectEvidencePath, {
@@ -1066,6 +1080,7 @@ test('captures versioned compatibility evidence', async ({ browser }, testInfo) 
             viewport: variant.viewport,
             suite: 'capture.spec.js',
             status: 'completed',
+            caseIds: requestedCaseIds,
             evidencePaths: [...variantEvidencePaths, path.relative(path.join(repositoryRoot, 'artifacts', 'compatibility', inputs.runId), projectEnvironmentPath).replaceAll(path.sep, '/')]
         });
     }

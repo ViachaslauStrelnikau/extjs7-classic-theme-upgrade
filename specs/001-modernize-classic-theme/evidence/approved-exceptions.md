@@ -81,6 +81,33 @@ evidence is missing or incomplete. Production checks remain skipped under the pr
 
 **Rollback**: Remove the toolbar Sass variable file, select ext-theme-classic, then rebuild.
 
+## T073 Forms, Menus, and Floating Components Approval
+
+On 2026-10-23, the project owner approved a demo-only G2 sequencing exception for the T073
+form, menu, and floating-component paint proposals. This approval allows implementation and
+validation while G2 remains blocked. It does not accept G2 or G3.
+
+**Reviewer**: Project owner (user approval in this conversation)
+**Scope**: `TestApp` only. In the derived theme, remove the form field background image; use a
+flat blue-gray menu active fill with no gradient; use a quiet neutral tooltip surface and border;
+and use a blue-gray window header with a white body. Change only these Sass variables:
+`$form-field-background-image`, `$menu-item-active-background-color`,
+`$menu-item-background-gradient`, `$tip-background-color`, `$tip-border-color`,
+`$window-header-background-color`, and `$window-body-background-color`. Preserve field fills,
+focus and invalid signals, menu separators and glyphs, semantic error colors, dimensions, spacing,
+positioning, text metrics, scrolling, DOM, selectors, and behavior. Do not extend this approval to
+other visual groups, application code, production, or geometry changes.
+**Date**: 2026-10-23
+**Evidence ID**: `approved-g2-sequencing-exception-t073-20261023`
+
+The exact variable values, affected demo cases, and reference source hashes are recorded in
+`../../artifacts/compatibility/t087-t073-demo-20261023/approvals.json` before implementation.
+Compare each state to the original `ext-theme-classic` theme and retain incomplete layout and
+review checks as blocked. Keep G0, G1, G2, and G3 blocked where evidence is missing.
+
+**Rollback**: Remove only the four T073 variable files from `theme-classic-modern`, select
+`ext-theme-classic`, then rebuild.
+
 ## Production Input Scope Deferral
 
 On 2026-10-23, the project owner directed the team to omit production inputs and production
