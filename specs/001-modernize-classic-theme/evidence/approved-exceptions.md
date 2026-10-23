@@ -58,8 +58,10 @@ Do not change application JavaScript or existing CSS to roll back.
 
 ## Limits
 
-This exception does not amend the constitution or specification.
-It does not pass G0, accept a production baseline, approve production use, or permit a production compatibility claim.
+This visual exception does not amend the constitution. It does not pass G0, accept a production
+baseline, approve production use, or permit a production compatibility claim. The 2026-10-23 scope
+decision below defers production input work to the next independent spec. It does not waive production
+adoption requirements.
 
 ## T084 Toolbar Approval
 
@@ -78,3 +80,18 @@ clipping, and rollback against ext-theme-classic. Keep G0, G1, G2, and G3 blocke
 evidence is missing or incomplete. Production checks remain skipped under the prior approval.
 
 **Rollback**: Remove the toolbar Sass variable file, select ext-theme-classic, then rebuild.
+
+## Production Input Scope Deferral
+
+On 2026-10-23, the project owner directed the team to omit production inputs and production
+compatibility testing from this feature. Test those inputs in the next independent spec.
+
+**Reviewer**: Project owner (user direction in this conversation)
+**Scope**: Current feature work in `TestApp` only. Keep the existing production input checklist as
+planning evidence. Do not collect, infer, or validate actual production inputs in this feature.
+**Date**: 2026-10-23
+**Evidence ID**: `defer-production-inputs-to-next-spec-20261023`
+
+This deferral does not pass production readiness or change production adoption requirements.
+Keep G0 blocked for production readiness. Do not claim production compatibility. See
+[deferred production scope](deferred-production-scope.md) for the work to carry forward.

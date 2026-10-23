@@ -18,7 +18,8 @@ Demo files do not prove production compatibility.
 | Reviewer and input approval | Missing | Production application owner | Reviewer identity, date, and verified input hashes |
 
 Do not replace these inputs with demo evidence.
-Do not accept G0, G1, G2, or modernization while required inputs are missing.
+Do not accept production readiness or adoption while required inputs are missing.
+Keep demo work within the scope and approvals recorded for this feature.
 Record received files in the run manifest. Verify each file hash and its source before G0 review.
 
 ## Current Scope
@@ -29,3 +30,14 @@ The project owner directed implementation to focus on the `TestApp` demo.
 No production files or inventory were supplied with this direction.
 Keep G0 blocked and T033 incomplete.
 Use demo evidence only for demo work. Do not claim production compatibility.
+
+## Scope Update
+
+**Recorded**: 2026-10-23
+
+The project owner directed the team to omit production inputs and production validation from this
+feature. Carry them to the next independent spec. This direction supersedes the earlier instruction
+to keep T033 active in this feature. See [deferred production scope](deferred-production-scope.md).
+
+G0 remains blocked for production readiness. It is not an active input collection task for this
+demo feature. Do not use the `TestApp` theme chain as production evidence.

@@ -1,7 +1,8 @@
 # Compatibility Harness Contract
 
 **Status**: Partial. Capture, comparison, reporting, and evidence checks exist.
-The original demo matrix completed in development. Production compatibility remains unproved.
+This harness feature covers the `TestApp` demo. Production inputs and production compatibility belong
+to the next independent spec.
 
 ## Commands
 
@@ -9,7 +10,7 @@ Use these root npm scripts:
 
 | Script | Implementation | Status |
 | --- | --- | --- |
-| `test:compatibility` | Node.js test runner | 39 dependency-free tests pass |
+| `test:compatibility` | Node.js test runner | 53 dependency-free tests pass |
 | `compat:capture` | Playwright with `tests/compatibility/playwright.config.js` | 336 original-theme demo captures passed in development. Production acceptance remains blocked. |
 | `compat:compare` | Node.js `tests/compatibility/compare.mjs` | Implemented. A run with incomplete evidence returns a blocked status. |
 | `compat:report` | Node.js `tests/compatibility/report.mjs` | Implemented. The report keeps blocked statuses. |
@@ -114,6 +115,7 @@ Final document: `compatibility-report.md` with AC-001 through AC-014 evidence li
 See [data-model.md](../data-model.md) for record fields and validation.
 
 Keep separate statuses for visual, geometry, behavior, and CSS compatibility.
-G0 failure blocks baseline acceptance even if provisional demo measurements pass.
+G0 remains blocked for production readiness. The next independent spec must verify production inputs.
+Do not use this demo harness run as production evidence.
 G2 failure blocks every modernization group.
 No approved screenshot can override another failing result category.

@@ -18,10 +18,9 @@ Use inherited Sass variables before adding component rules.
 Use Playwright for geometry, computed styles, screenshots, and interactions.
 Do not create an application, runtime theme switcher, or CSS overlay.
 
-The verified demo parent is `theme-classic`. Production inheritance is not available.
-Treat this parent as the demo candidate until production inputs are verified.
-If production uses another active package, resolve inheritance before baseline acceptance.
-Do not claim that one package supports incompatible parent chains.
+The verified `TestApp` parent is `theme-classic`. Production inheritance is not available and is
+outside this feature. Verify it in the next independent production compatibility spec.
+Do not claim that demo results prove production compatibility or support incompatible parent chains.
 
 ## Technical Context
 
@@ -51,11 +50,12 @@ Record actual browser versions, DPR, fonts, operating system, and viewport.
 **Performance Goals**: Zero unintended layout or scroll changes. No new theme runtime logic.
 No numerical latency target was specified. Record instability and rendering errors as failures.
 
-**Constraints**: Preserve geometry, APIs, DOM, `.x-*` contracts, CSS, font metrics, and build commands.
-Require verified production inputs before baseline acceptance or modernization.
+**Constraints**: Preserve demo geometry, APIs, DOM, `.x-*` contracts, CSS, font metrics, and build
+commands. Do not claim production compatibility. Production inputs belong to the next independent spec.
 
-**Scale/Scope**: One SDK version, one package, ten required component families, applicable states,
-four browser/DPR combinations, and two viewport cases. Add verified production-specific coverage.
+**Scale/Scope**: One SDK version, one package, ten demo component families, applicable states,
+four browser/DPR combinations, and two viewport cases. Production-specific coverage belongs to the
+next independent spec.
 
 ## Constitution Check
 
@@ -69,20 +69,22 @@ This is a design review. It does not waive execution gates.
 | Geometry and CSS contracts | Exact measurements, cascade checks, DOM checks | Pass |
 | Controlled paint changes | Empty derived baseline; ordered change groups | Pass |
 | Evidence before claims | Separate verified source facts, design, and runtime results | Pass |
-| Production gate | G0 blocks baseline acceptance and modernization | Pass; G0 blocked |
+| Production readiness | Verify inputs in the next independent spec; keep production claims blocked | Deferred |
 | Documentation standard | Simplified Technical English principles | Pass; no certification claimed |
 
 | Gate | Required evidence | Current status |
 | --- | --- | --- |
-| G0: Production inputs | Actual CSS and order, theme parent chain, component and state inventory | BLOCKED: inputs absent |
-| G1: Original build | Standard Cmd metadata, successful build, stable original captures | PARTIAL; one development capture is complete, repeat and production runs are pending |
-| G2: Derived baseline | G0 and G1 pass; empty derived theme matches all required cases | NOT RUN; acceptance blocked by G0 |
-| G3: Change group | G2 passes; approved goal; relevant regressions pass | BLOCKED until G2 passes |
-| G4: Release and rollback | Complete acceptance evidence and successful rollback | NOT RUN |
+| G0: Production inputs | Actual CSS and order, theme parent chain, component and state inventory | DEFERRED to the next independent spec; production readiness remains blocked |
+| G1: Demo original | Standard Cmd build and stable original captures | BLOCKED by unstable layout observations and incomplete Firefox layout evidence |
+| G2: Demo derived baseline | G0, G1, and complete equivalent demo results | BLOCKED because G0 is deferred and G1 layout evidence is incomplete |
+| G3: Demo change group | Complete demo evidence, approved goal, reviewer-accepted images | BLOCKED pending complete evidence and image review |
+| G4: Demo release and rollback | Complete demo acceptance evidence and successful rollback | NOT RUN |
 
-Preparatory demo and harness work may be provisional.
-Do not accept a baseline or start paint changes while G0 is blocked.
-Stop work that conflicts with a constitutional rule. Documentation is not exception approval.
+Production inputs do not block demo-only implementation tasks in this feature.
+Keep G0 blocked for production readiness and deferred. The current gate model also requires G0 for
+G2, so this feature cannot accept G2 without the next spec. Keep G1 through G4 blocked when their
+demo evidence is missing or incomplete. Only the documented T046 and T084 demo exceptions permit
+their approved work. Do not extend those approvals to other changes.
 
 ## Project Structure
 
@@ -147,7 +149,7 @@ Standard Cmd refresh and development and production builds pass without `.sencha
 Do not create replacement metadata unless a reproducible Cmd requirement exists.
 The earlier Fashion failure log is missing. Its cause remains unknown.
 See [build recovery evidence](evidence/build-recovery.md).
-Production inputs remain an external dependency. Do not invent them.
+Production inputs remain an external dependency for the next independent spec. Do not invent them.
 
 ### Phase 1: Design Results
 
@@ -168,11 +170,10 @@ After G2 passes, change one paint group at a time in FR-026 order.
 Record variable scope, geometry dependencies, approvals, tests, and rollback for each group.
 Keep original references separate from approved modernized references.
 
-Build development and production output with both themes before release acceptance.
-Compare each mode within its own theme pair.
-Run the full matrix for the development reference mode.
-Repeat the full matrix for production output before G4. Include rollback in both modes.
-Investigate mode-specific failures before acceptance.
+Build the demo in the required modes. Capture and compare the full demo matrix in development.
+Do not treat a production-mode demo build as production application coverage.
+The next independent production spec must supply production inputs and repeat its required matrix,
+including rollback. Keep those references separate from demo references.
 
 ### Layout Recalculation Checks
 
@@ -199,7 +200,8 @@ Block the affected acceptance decision. Do not infer a pass from final geometry.
 
 ## Complexity Tracking
 
-No constitutional exceptions are proposed.
 One browser test dependency covers the required checks.
 Small Node.js helpers compare and report evidence. They do not replace Sencha Cmd builds.
-Production inputs and original build recovery remain execution gates.
+The approved demo exceptions and the production scope deferral are recorded in
+`evidence/approved-exceptions.md`. They do not pass production readiness.
+Original build recovery is recorded.

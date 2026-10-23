@@ -17,14 +17,21 @@ Preserve geometry, existing styles, component behavior, and standard build integ
   → A: Support only the available Ext JS 7.7.0.31 software development kit (SDK).
   Support for other SDK versions is not required.
 - Q: Can modernization start after the demo passes its baseline tests, while production validation remains a later adoption gate?
-  → A: No. Production CSS, theme inheritance, and component inputs are required before baseline
-  acceptance or modernization. Demo results alone cannot pass this gate.
+  → A (2026-10-23 scope update): This feature covers `TestApp` only. Production CSS, theme
+  inheritance, component inputs, and production browser validation belong to the next independent
+  production compatibility spec. Demo results do not prove production compatibility.
 
 ### Session 2026-10-21
 
 - The project owner approved skipping the production check for demo-only visual work.
-  G0 remains blocked. Demo results do not prove production compatibility. See
-  [approved exception](evidence/approved-exceptions.md).
+  The production check is now deferred to the next independent spec. Keep G0 blocked for
+  production readiness. Demo results do not prove production compatibility. See the
+  [scope decision](evidence/approved-exceptions.md).
+
+### Session 2026-10-23
+
+- The project owner directed the team to omit production inputs from this feature and test them
+  in the next independent spec. This feature covers the existing `TestApp` demo only.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -75,8 +82,9 @@ Inspect screenshots, measured geometry, computed styles, selector effects, and i
    **Then** only this SDK version is within the required support scope.
    Results from other SDK versions do not satisfy its baseline gate.
 4. **Given** production CSS, theme inheritance, or component inputs are missing,
-   **When** the demo passes its baseline tests,
-   **Then** baseline acceptance and modernization remain blocked until those inputs are verified.
+   **When** the team completes this demo feature,
+   **Then** record production validation as deferred to the next independent spec and make no
+   production compatibility claim.
 
 ---
 
@@ -130,7 +138,7 @@ A group must pass independently before the next group starts.
 
 - The installed framework differs from the target. Record the mismatch and withhold target acceptance.
 - Production inheritance, styles, or component inputs are unavailable.
-  Record the gap. Block baseline acceptance and modernization. Withhold production claims.
+  Record the gap. Defer production acceptance to the next independent spec. Withhold production claims.
 - A supported component has a custom `ui`, `cls`, or `bodyCls`. Preserve it under both themes.
 - A legacy declaration competes with a theme state rule. Verify the cascade in the active state.
 - Text is long or a grid has many rows and columns. Compare clipping and scroll dimensions.
@@ -161,10 +169,11 @@ A group must pass independently before the next group starts.
   Rollback MUST restore its appearance and behavior through standard configuration and rebuild.
   Rollback MUST NOT require removal of theme-specific application patches.
 - **FR-006**: Before baseline acceptance, record exact framework and Sencha Cmd versions.
-  Verify the active theme, its parent chain, style sources, package configuration, and build workflow.
-  Use the available Ext JS 7.7.0.31 SDK.
-  Obtain and verify production CSS, theme inheritance, and component inputs before baseline acceptance.
-  Demo results alone MUST NOT pass this gate. Modernization MUST NOT start while these inputs are missing.
+  For this feature, verify the `TestApp` theme, parent chain, style sources, package configuration,
+  and build workflow. Use the available Ext JS 7.7.0.31 SDK.
+  Verify actual production CSS, theme inheritance, component inputs, and browser requirements in
+  the next independent production compatibility spec. Demo results MUST NOT establish production
+  compatibility.
 - **FR-007**: Record the original baseline before visual changes.
   Include screenshots, geometry, layout-sensitive computed styles, selector effects,
   stylesheet loading order, environment details, and representative interactions.
@@ -342,10 +351,11 @@ The following facts were checked on 2026-10-20. They do not establish runtime co
 - Ext JS 7.7.0.31 is the sole target, as confirmed by the project owner.
   Use the existing SDK. Do not add a requirement to obtain or support another SDK version.
   Sencha Cmd 7.7.0.36 is recorded in the repository. Build compatibility still requires evidence.
-  Missing production inputs remain subject to the constitution's baseline gate.
+  This feature covers `TestApp`. Production inputs and validation belong to the next independent spec.
 - Production configuration, CSS, and component inventory are not available in the inspected project.
   The demo's active theme is not evidence of production inheritance.
-  Planning may continue. Baseline acceptance and modernization MUST wait until these inputs are verified.
+  Keep production acceptance blocked until the next spec verifies these inputs. Do not infer the
+  production theme chain from `TestApp`.
 - The existing demo may receive shared test fixtures and representative components during implementation.
   These additions are test coverage. They must be identical for both themes.
   Existing application code must not need edits when selecting or restoring a theme.
