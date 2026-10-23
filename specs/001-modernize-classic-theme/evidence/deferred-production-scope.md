@@ -15,7 +15,8 @@ Carry these items into the next independent production compatibility spec:
 - Record production component and state inventories, selectors, and custom CSS inputs.
 - Record required browsers, versions, viewports, fonts, and device pixel ratios.
 - Map each production input to stable compatibility cases.
-- Build, capture, compare, and roll back the production application with verified inputs.
+- Define the validation scope after the next spec verifies its inputs. This feature does not
+  prescribe or require production builds.
 - Record G0 and production acceptance decisions with linked evidence.
 - Keep unsupported or missing production coverage blocked.
 

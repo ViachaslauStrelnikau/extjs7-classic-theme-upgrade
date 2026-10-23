@@ -30,7 +30,7 @@ Test command discovery and missing-suite rejection before US3 acceptance.
 | `COMPAT_RUN` | Unique safe run identifier; reject path separators and traversal |
 | `COMPAT_THEME` | Capture role: `original`, `original-repeat`, `derived`, `modernized`, or `rollback` |
 | `COMPAT_PHASE` | `baseline` or `modernization` |
-| `COMPAT_BUILD_MODE` | `development` or `production` |
+| `COMPAT_BUILD_MODE` | `development` for this feature. The generic evidence format can record `production` for a future spec, but this feature does not require it. |
 | `COMPAT_BASE_URL` | URL for the selected standard build; no query-based theme switch |
 
 `original-repeat` uses the original package and tests measurement repeatability.

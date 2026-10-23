@@ -18,11 +18,10 @@ $themeCmd = Join-Path (Get-Location) 'node_modules/@sencha/cmd-windows/dist/senc
 Set-Location TestApp
 & $themeCmd app refresh
 & $themeCmd app build development
-& $themeCmd app build production
 & $themeCmd fs web -port=1841 start -map=.
 ```
 
-These commands refresh metadata, build each mode, and serve the demo. Build recovery is pending because `TestApp/.sencha` is absent. Follow the feature's `quickstart.md`; these commands do not establish a working baseline.
+These commands refresh metadata, build the development demo, and serve it. Build recovery is pending because `TestApp/.sencha` is absent. Follow the feature's `quickstart.md`; these commands do not establish a working baseline.
 
 ## Coding Style & Naming Conventions
 
@@ -32,7 +31,7 @@ Use short, direct English in documentation. Prefer theme Sass variables before c
 
 ## Testing Guidelines
 
-No application test framework or numeric coverage threshold is configured. Playwright Test and `compat:*` scripts are planned; do not report them as runnable. Follow the compatibility contract for stable case identifiers and required component coverage. Compare original, replacement, and rollback builds for screenshots, geometry, computed styles, and interactions. Record browser, viewport, and device pixel ratio. Validate development and production separately.
+No application test framework or numeric coverage threshold is configured. Playwright Test and `compat:*` scripts are planned; do not report them as runnable. Follow the compatibility contract for stable case identifiers and required component coverage. Compare original, replacement, and rollback builds for screenshots, geometry, computed styles, and interactions. Record browser, viewport, and device pixel ratio. Use development and testing builds for this feature. Do not require production builds here.
 
 ## Commit & Pull Request Guidelines
 

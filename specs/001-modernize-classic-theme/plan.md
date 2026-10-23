@@ -145,7 +145,8 @@ The package has a root `name` field and a nested `sencha` configuration object.
 The SDK `theme-classic` and `theme-neutral` packages use this same shape.
 Keep the generated theme identity initializer. Do not add component override classes.
 Keep Fashion. Start with inherited assets and unchanged palette variables.
-Standard Cmd refresh and development and production builds pass without `.sencha` metadata.
+Standard Cmd refresh and development builds pass without `.sencha` metadata. Historical evidence
+also records production-mode builds, but this feature does not require them.
 Do not create replacement metadata unless a reproducible Cmd requirement exists.
 The earlier Fashion failure log is missing. Its cause remains unknown.
 See [build recovery evidence](evidence/build-recovery.md).
@@ -170,10 +171,11 @@ After G2 passes, change one paint group at a time in FR-026 order.
 Record variable scope, geometry dependencies, approvals, tests, and rollback for each group.
 Keep original references separate from approved modernized references.
 
-Build the demo in the required modes. Capture and compare the full demo matrix in development.
-Do not treat a production-mode demo build as production application coverage.
-The next independent production spec must supply production inputs and repeat its required matrix,
-including rollback. Keep those references separate from demo references.
+Build the demo in development mode for this feature. Capture and compare the full demo matrix.
+Do not treat a historical production-mode demo build as production application coverage.
+The next independent spec will set its validation scope after it verifies production inputs. This
+feature does not prescribe or require production builds. Keep future production references separate
+from demo references.
 
 ### Layout Recalculation Checks
 

@@ -54,7 +54,7 @@ The browser capture configuration must set the required test time zone and local
 | Build definition | `TestApp/build.xml` |
 | Application config | `TestApp/app.json` |
 | Workspace config | `TestApp/workspace.json` |
-| Standard build commands | `sencha app refresh`, `sencha app build development`, `sencha app build production` |
+| Build commands required by this feature | `sencha app refresh`, `sencha app build development` |
 | Existing `.sencha` metadata | Absent; `TestApp/.gitignore` excludes it |
 
 The repository had no Playwright Test dependency or compatibility scripts at this check.
