@@ -25,21 +25,21 @@ The command exited with code 0. It reported that it used the existing workspace.
 It created no `.sencha` files. It did not change `app.json`, application Sass, workspace configuration, or the build definition.
 See `artifacts/compatibility/preflight/app-install.log`.
 
-Run the standard refresh and builds from `TestApp`:
+Run the standard refresh and development build from `TestApp`:
 
 ```powershell
 & $themeCmd app refresh
 & $themeCmd app build development
-& $themeCmd app build production
 ```
 
 | Command | Exit code | Log |
 | --- | ---: | --- |
 | `sencha app refresh` | 0 | `artifacts/compatibility/preflight/app-refresh.log` |
 | `sencha app build development` | 0 | `artifacts/compatibility/preflight/build-development.log` |
-| `sencha app build production` | 0 | `artifacts/compatibility/preflight/build-production.log` |
 
-Both builds completed Fashion compilation and wrote output to `TestApp/build/development/TestApp` and `TestApp/build/production/TestApp`.
+The development build completed Fashion compilation and wrote output to `TestApp/build/development/TestApp`.
+The historical production build also exited with code 0 and wrote output to `TestApp/build/production/TestApp`.
+See `artifacts/compatibility/preflight/build-production.log`. This feature does not require production mode.
 Cmd reported missing theme image paths during Fashion compilation. Review these warnings before screenshot acceptance.
 
 ## Finding and Limit
@@ -49,5 +49,6 @@ No required `.sencha` file was identified. Do not create replacement metadata wi
 The earlier Fashion exit code 1 did not recur. The available repository does not establish why it occurred.
 Keep the historical cause unresolved until its original log or a reproducible failure is available.
 
-The standard build workflow now works for the original theme in both modes.
+The required standard workflow now works for the original theme in development mode.
+The historical production build is informational and is not part of this feature's required workflow.
 This result does not prove browser loading, visual equivalence, G0, G1, or G2.
