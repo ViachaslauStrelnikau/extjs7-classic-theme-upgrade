@@ -35,6 +35,7 @@ full demo capture matrix. See [T084 toolbar evidence](t084-toolbar-demo.md) and 
 [T086 compatibility report](../../artifacts/compatibility/t086-painted-readiness-20261021/compatibility-report.md).
 
 The compatibility report remains blocked. G0 is blocked for production readiness and is deferred
-to the next independent spec. G1 and G2 remain blocked by unstable layout observations and
-incomplete Firefox layout-work evidence. G3 and G4 remain blocked. No production inputs or
-production application coverage were tested.
+to the next independent spec. The report verifies AC-002, AC-008, AC-011, and AC-012 for the
+development selection and rollback. It records G1 as not-run because T086 has no empty Derived
+role. The separate T076 diagnostic records unstable natural-time layout counts. G2, G3, and G4
+remain blocked. No production inputs or production application coverage were tested.
