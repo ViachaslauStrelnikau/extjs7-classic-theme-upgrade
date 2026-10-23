@@ -293,7 +293,7 @@ Do not mark a task complete until its stated evidence exists.
 ## Phase 10: Convergence
 
 - [X] T072 [HIGH] Connect compareModernizationRun to the compat:compare workflow. Include each change group, case result, rollback result, and difference image in tests/compatibility/report.mjs. Remove the stale claim that the theme has no visual changes. Preserve blocked and failed results. Per T044, FR-022–FR-027, and SC-008 (partial).
-- [ ] T073 [HIGH] Define and approve paint goals for form controls, menus, and floating components. Add approved paint-only Sass variables under TestApp/packages/local/theme-classic-modern/sass/var/. Map each family to its applicable states. Validate each group in order and record omitted changes with a reason. Keep demo-only scope and blocked acceptance statuses where required evidence is incomplete. Per FR-014–FR-016, FR-020, FR-026, SC-004, and US4/AC1–AC3 (missing).
+- [ ] T073 [HIGH] Prepare paint goal proposals for form controls, menus, and floating components. Obtain owner approval before changing Sass variables under `TestApp/packages/local/theme-classic-modern/sass/var/`. Map each approved family to its states, then validate it in order. Record omitted changes with a reason. **Proposal ready**: See [visual decisions](evidence/visual-decisions.md). No approval is recorded. Keep this task pending until the baseline gate or a new scoped exception permits the work. Per FR-014–FR-016, FR-020, FR-026, SC-004, and US4/AC1–AC3.
 
 ## Phase 11: Convergence
 
