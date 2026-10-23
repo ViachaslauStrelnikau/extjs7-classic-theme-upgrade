@@ -370,3 +370,7 @@ The 52 Node.js compatibility checks passed. Production checks remain skipped.
 See [T076 diagnostic evidence](evidence/t076-layout-diagnostic.md).
 The virtual-time probe yielded four layouts per capture only after it compressed the 400 ms budget
 into 4 to 6 ms of wall time. Reject it as acceptance evidence. See the [synthetic-time result](evidence/t076-layout-diagnostic.md#synthetic-time-experiment).
+
+## Phase 16: Convergence
+
+- [X] T085 [HIGH] Complete the T073 Original-repeat captures for the affected cases and all eight demo environments. Rerun the formal comparison and resolve missing capture records without discarding failures per FR-021, FR-023, SC-006, and US4/AC3. **Evidence**: All four roles contain 152 screenshots. Original-repeat screenshots match Original by SHA-256. Each role passed 40/40 Playwright checks. The formal report remains blocked because this targeted run has no derived manifest and layout-work evidence is incomplete. See [T085 repeat capture](evidence/t085-t073-repeat-20261023.md). Production inputs and builds remain deferred.
