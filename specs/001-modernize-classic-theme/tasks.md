@@ -168,6 +168,11 @@ Accept the group before starting the next group. G2 and US3 are mandatory prereq
   T084 screenshots as the intended demo look. The review covers those displayed examples only.
   T047 remains open because layout evidence is incomplete and the full screenshot matrix is not
   accepted. See [screenshot review](evidence/screenshot-review-20261023.md).
+  **Firefox profiler review (2026-10-23)**: WebDriver BiDi can save a Firefox Profiler recording.
+  The profiler uses statistical samples and markers for instrumented events. Its documentation
+  does not guarantee a marker for every style calculation or layout pass. This method does not
+  prove complete layout work. Keep Firefox geometry acceptance blocked. See
+  [Firefox layout measurement](evidence/firefox-layout-measurement.md).
   **Formal comparison update**: The T086 modernization comparator processed 128 T046 states. All 128 remain blocked because no separate reviewer-approved Modernized screenshots are recorded. It reported no capture errors. The baseline comparator cannot run G1 because T086 has no empty Derived role; G2 remains blocked. See [T046 demo evidence](evidence/t046-demo-change.md) and the T086 `modernization-results.json` and `development-results.json`.
 - [ ] T048 [US4] Refine approved background colors, border colors, and separators in class-mapped files under `TestApp/packages/local/theme-classic-modern/sass/var/`. Preserve border widths, base palette identity, semantic colors, and geometry variables. Record the exact file and variable changes in `artifacts/compatibility/<run>/approvals.json` before edits.
 - [ ] T049 [US4] Validate T048 through the same regression, visual review, and rollback process as T047. Save separate group evidence in `artifacts/compatibility/<run>/`. Require G3 acceptance before T050.

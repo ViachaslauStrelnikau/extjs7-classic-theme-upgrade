@@ -26,6 +26,21 @@ complete counter.
 The source review on 2026-10-21 found no supported method in the selected capture workflow that
 counts every Firefox style calculation and layout pass during the recorded actions.
 
+## WebDriver BiDi Profiler Review
+
+On 2026-10-23, the Firefox documentation confirmed that WebDriver BiDi can start and stop the
+Firefox Profiler. The profile is global. The active browsing context only marks the tab; it does
+not limit the recording.
+
+The profiler uses statistical samples. Those samples can miss short operations. It also records
+deterministic markers for events that Firefox code instruments. The documentation does not
+guarantee a marker for every style calculation or layout pass. A profile cannot prove a complete
+layout-work count without further source-level validation. Keep Firefox layout acceptance blocked.
+
+Sources: [WebDriver BiDi profiler](https://firefox-source-docs.mozilla.org/remote/webdriver-bidi/Extensions.html),
+[Gecko Profiler](https://firefox-source-docs.mozilla.org/tools/profiler/index.html), and
+[profiler markers](https://firefox-source-docs.mozilla.org/tools/profiler/markers-guide.html).
+
 ## Decision
 
 No complete Firefox layout-work method has been validated in the current capture suite. Keep
