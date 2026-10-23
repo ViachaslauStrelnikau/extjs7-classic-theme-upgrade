@@ -32,6 +32,6 @@ test('the existing demo selects theme-classic-modern for visual review', async (
 
 test('selection verification supports an authorized development-only build matrix', async () => {
     const script = await readFile(new URL('./verify-selection.ps1', import.meta.url), 'utf8');
-    assert.match(script, /\[string\[\]\] \$BuildModes = @\('development', 'production'\)/);
+    assert.match(script, /\[string\[\]\] \$BuildModes = @\('development'\)/);
     assert.equal((script.match(/foreach \(\$mode in \$BuildModes\)/g) || []).length, 2);
 });

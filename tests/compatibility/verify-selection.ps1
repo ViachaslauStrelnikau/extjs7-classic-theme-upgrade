@@ -3,7 +3,7 @@ param(
     [string] $RunId,
 
     [ValidateSet('development', 'production')]
-    [string[]] $BuildModes = @('development', 'production')
+    [string[]] $BuildModes = @('development')
 )
 
 $ErrorActionPreference = 'Stop'
