@@ -35,6 +35,10 @@ The approved execution-path rerun passed all 52 checks.
 The first comparison found a trailing escape in approvals.json.
 The run preserves that attempt. The corrected comparison keeps its required gate blocks.
 
+The current repository compatibility suite passed 53 of 53 checks on 2026-10-23 after the
+T061 report validation update. The T084 Playwright run remains the 40 of 40 browser-test run
+recorded above.
+
 The run reuses unchanged original and rollback captures from T086 and the empty derived captures from T042.
 Their case definitions, source fixture hashes, browser versions, fonts, DPR, viewports, locale, time zone,
 and build mode match this run. See [baseline references](../../../artifacts/compatibility/t084-toolbar-demo-20261021/baseline-reference.json).
@@ -46,6 +50,9 @@ The compatibility report keeps G0 blocked for production readiness and defers it
 The modernization comparator needs reviewer-approved screenshots. No screenshots were auto-approved.
 See the [compatibility report](../../../artifacts/compatibility/t084-toolbar-demo-20261021/compatibility-report.md)
 and [toolbar delta results](../../../artifacts/compatibility/t084-toolbar-demo-20261021/toolbar-delta-comparison.json).
+The formal T046 comparison also blocks all 128 affected states until the reviewer approves
+separate Modernized references. See
+`../../../artifacts/compatibility/t086-painted-readiness-20261021/modernization-results.json`.
 
 Production capture remains outside this feature and belongs to the next independent spec.
 Do not treat this evidence as production validation.
