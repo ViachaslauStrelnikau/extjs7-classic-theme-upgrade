@@ -288,7 +288,7 @@ Do not mark a task complete until its stated evidence exists.
 - [X] T068 [CRITICAL] Add runtime CSS compatibility and interaction assertions for all required selectors, states, and actions. Integrate them into capture and reject missing suite evidence per FR-013, FR-020–FR-025, and US3/AC1–AC3 (missing).
 - [X] T069 [HIGH] Validate a complete Firefox layout and style recalculation method against recorded actions, or record unsupported coverage and keep acceptance blocked per FR-021, FR-024, and SC-006. **Evidence**: Unsupported coverage is recorded, and T042 marks Firefox geometry comparisons blocked. See [Firefox layout measurement investigation](evidence/firefox-layout-measurement.md).
 - [ ] T070 [HIGH] After G2 and US3 pass, obtain reviewer approval and implement and validate each required visual change group in order, with regression and rollback evidence per FR-014–FR-018, FR-026, and US4/AC1–AC3 (missing).
-- [ ] T071 [HIGH] Run the documented final workflow, generate the report with AC-001 through AC-014 and SC-001 through SC-008 evidence, and record the G4 review per FR-027, SC-008, and AC-014 (missing).
+- [X] T071 [HIGH] Run the documented demo workflow, generate the report with AC-001 through AC-014 and SC-001 through SC-008 evidence, and record the demo G4 decision per FR-027, SC-008, and AC-014. Keep release review pending until required demo evidence and reviewer decisions are complete. Production review belongs to the next independent spec. **Evidence**: The T086 report was regenerated with the production scope deferral. The [demo release review](evidence/demo-release-review-20261023.md) records the blocked G4 decision.
 
 ## Phase 10: Convergence
 
