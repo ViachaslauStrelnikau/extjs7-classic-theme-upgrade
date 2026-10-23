@@ -430,7 +430,7 @@ export async function createReport({ runId, selectionRunId = null, rootDir = roo
         };
     }
     const limitations = [
-        productionInputs?.status === 'verified' ? 'Production inputs are verified for this run.' : 'Production CSS, stylesheet order, theme inheritance, component states, and browser requirements are not verified. G0 is blocked.',
+        productionInputs?.status === 'verified' ? 'Production inputs are verified for this run.' : 'Production input validation is deferred to the next independent spec. G0 remains blocked for production readiness.',
         selectionError ? `Selection evidence is invalid. ${selectionError}` : selection ? 'Selection and rollback evidence passed its manifest checks.' : 'Selection and rollback evidence was not supplied. Do not accept AC-002.',
         ...(suiteCoverage.status === 'complete' ? [] : [`CSS compatibility and interaction suites are incomplete. ${suiteCoverage.validationError || 'See suite-results.json.'} Do not accept G1 or G2.`]),
         ...(rawPairs.length ? ['Raw pair summaries are diagnostic unless the formal comparison records link the same captures and manifests. Review their blocked counts and differences below.'] : []),

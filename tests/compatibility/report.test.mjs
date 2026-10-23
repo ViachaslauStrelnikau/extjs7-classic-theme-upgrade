@@ -45,7 +45,8 @@ test('reports blocked gates and unverified criteria when evidence is absent', as
         assert.equal(result.report.successCriteria.length, 8);
         assert.equal(result.report.acceptanceCriteria.find((item) => item.id === 'AC-003').status, 'blocked');
         assert.equal(result.report.acceptanceCriteria.find((item) => item.id === 'AC-004').status, 'not-run');
-        assert.match(await readFile(result.markdownPath, 'utf8'), /Production CSS/);
+        assert.match(await readFile(result.markdownPath, 'utf8'), /Production input validation is deferred to the next independent spec/);
+        assert.match(await readFile(result.markdownPath, 'utf8'), /G0 remains blocked for production readiness/);
         assert.match(await readFile(result.htmlPath, 'utf8'), /AC-014/);
     } finally {
         await rm(rootDir, { recursive: true, force: true });
