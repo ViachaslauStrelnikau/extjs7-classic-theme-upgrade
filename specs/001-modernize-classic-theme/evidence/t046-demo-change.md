@@ -25,6 +25,13 @@ Rollback each have two captures with four counter differences. Firefox layout ev
 blocked in 168 captures per pair. All 336 Modernized screenshots differ from Classic and need
 reviewer-approved references.
 
+The formal T046 comparison processed 128 affected states. It blocked all 128 because no separate
+reviewer-approved Modernized screenshots are recorded. The comparison reported no capture errors.
+It does not close T047 or G3. The baseline comparison is also incomplete. T086 has a Modernized role,
+not the empty Derived role required by the baseline comparator. G1 is not-run and G2 remains blocked.
+See `../../artifacts/compatibility/t086-painted-readiness-20261021/modernization-results.json` and
+`../../artifacts/compatibility/t086-painted-readiness-20261021/development-results.json`.
+
 T046 completes the approved demo paint implementation. T047 and G3 remain blocked by layout
 evidence and screenshot review. Production compatibility remains unverified.
 
