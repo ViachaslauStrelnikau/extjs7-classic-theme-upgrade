@@ -319,6 +319,12 @@ Do not mark a task complete until its stated evidence exists.
 - [ ] T079 [HIGH] Complete the remaining visual groups in order. Approve each goal and validate geometry, styles, behavior, and rollback before starting the next group. Reconcile T046–T057, T070, and T073 per FR-014–FR-026 and SC-004 (partial).
 - [X] T080 [HIGH] Run the final demo workflow in development mode. Generate the report with linked evidence for AC-001 through AC-014 and SC-001 through SC-008. Record the release review and all blocked demo limits. Reconcile T060–T062 and T071 per FR-027, SC-008, and AC-014. Production testing is deferred. **Evidence**: See [T060 workflow evidence](evidence/t060-demo-workflow-20261023.md), the [T086 compatibility report](../../artifacts/compatibility/t086-painted-readiness-20261021/compatibility-report.md), and the [demo release review](evidence/demo-release-review-20261023.md).
 - [X] T081 [MEDIUM] Close the build-recovery finding by documenting that the missing historical Fashion log prevents a root-cause finding. Record the supported recovery evidence and its limits without inventing a cause. Reconcile T005 per plan Phase 0 and Constitution IV (partial).
+  **Current dependencies (2026-10-23)**: T073 is implemented and validated under its demo-only
+  approval. The owner accepted the displayed T046 and T084 screenshots as the intended demo look.
+  T047 remains open because layout evidence is incomplete. T048–T057 remain pending and cannot
+  start before T047 acceptance. The owner has not approved these groups. T070 remains gated on G2
+  and US3. T084 remains open while G3 checks are blocked. Production inputs remain deferred to the
+  next spec. See [screenshot review](evidence/screenshot-review-20261023.md), [T073 validation](evidence/t073-demo-paint-20261023.md), and [layout diagnostic](evidence/t076-layout-diagnostic.md).
 
 ## Phase 13: Convergence
 
