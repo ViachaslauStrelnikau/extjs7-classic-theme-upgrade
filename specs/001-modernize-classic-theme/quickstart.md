@@ -1,7 +1,8 @@
 # Validation Quickstart
 
-**Status**: The empty package, evidence checks, and browser capture runner exist.
-The demo capture matrix ran in development. Production compatibility remains unproved.
+**Status**: The selectable package, evidence checks, and browser capture runner exist.
+This quickstart covers the `TestApp` demo. The T046 paint group and T084 toolbar change have
+demo-only approvals. Production inputs and validation belong to the next independent spec.
 Do not treat demo evidence as production evidence.
 
 ## 1. Check Prerequisites
@@ -19,16 +20,20 @@ npm ci
 npx --no-install playwright install chromium firefox
 ```
 
-Obtain actual production CSS, stylesheet order, theme inheritance, and component inputs.
-Map them to the cases and verify them with the reviewer.
-If these inputs are absent, G0 is BLOCKED.
-Provisional preparation may continue. Baseline acceptance and modernization must wait.
+Do not obtain or test production inputs in this feature. Record them for the next independent spec.
+G0 remains blocked for production readiness. This does not block demo-only implementation work.
+The project owner approved the T046 demo-only G2 sequencing exception in
+[approved exceptions](evidence/approved-exceptions.md).
+The owner also approved the T084 toolbar change for `TestApp`. Use the original Classic theme as
+the geometry and behavior reference. These exceptions do not pass G0, G1, G2, or G3.
+Do not claim production compatibility or extend either approval to another change group.
 
 ## 2. Recover the Standard Build
 
 `TestApp/.sencha` is absent and `TestApp/.gitignore` excludes it.
 The standard `sencha app install` command exited with code 0. It created no `.sencha` files.
-The standard refresh and development and production builds also exited with code 0 without `.sencha`.
+The standard refresh and development demo build also exited with code 0 without `.sencha`.
+This feature requires development mode only. Historical production-mode logs remain in the build evidence.
 Do not create replacement metadata unless a reproducible Cmd failure requires it.
 The earlier Fashion failure log is absent from this worktree. Its cause is unknown.
 See [build recovery evidence](evidence/build-recovery.md).
@@ -41,12 +46,12 @@ $themeCmd = Join-Path $themeRepository 'node_modules/@sencha/cmd-windows/dist/se
 Set-Location (Join-Path $themeRepository 'TestApp')
 & $themeCmd app refresh
 & $themeCmd app build development
-& $themeCmd app build production
 ```
 
 Run these commands from `TestApp`.
 Stop on nonzero exit. Save full logs. Verify the generated output uses the selected theme.
 The original demo selection is `"theme": "ext-theme-classic"`.
+This command builds the development demo only. It does not test production inputs.
 
 Run the dependency-free evidence checks from the repository root:
 
@@ -54,7 +59,7 @@ Run the dependency-free evidence checks from the repository root:
 npm run test:compatibility
 ```
 
-The current check ran 39 tests. All 39 tests passed.
+The current check ran 54 tests. All 54 tests passed.
 This suite does not launch a browser or prove theme compatibility.
 
 The root `compat:capture`, `compat:compare`, and `compat:report` commands exist.
@@ -81,9 +86,6 @@ The local Cmd build template documents the `fs web` form:
 
 Start it from `TestApp`. Use `http://localhost:1841/` for development capture.
 The implementation verified this URL with HTTP status `200` and page title `TestApp`.
-For production, change to `TestApp/build/production/TestApp` and start the same server on port `1842`.
-Use `http://localhost:1842/` for production capture.
-The implementation verified the page and `app.js` with HTTP status `200`.
 Do not run a build watcher during captures.
 
 The original-theme development capture passed all four browser and DPR projects.
@@ -92,7 +94,10 @@ It stores separate project and viewport directories under `artifacts/compatibili
 Each case has a full `capture.json`, six field JSON files, and a screenshot.
 This run proves the demo capture path. It does not prove production compatibility.
 Firefox captures do not measure every layout pass. The comparator blocks that acceptance check.
-Production inputs remain missing, so G0, baseline acceptance, and modernization remain blocked.
+G0 remains blocked for production readiness and is deferred to the next independent spec.
+G1 and G2 remain blocked by unstable original layout observations and incomplete Firefox
+layout-work evidence. The approved exceptions permit only the specified demo changes. They do not
+accept the baseline, either change group, or production compatibility.
 
 ## 3. Capture the Original Twice
 
@@ -128,8 +133,8 @@ Use the verified parent chain. Initially add no paint rules or replacement asset
 See [theme-package.md](contracts/theme-package.md).
 
 Change only the standard `theme` selection to `theme-classic-modern`.
-From `TestApp`, run `app refresh` and `app build development` and `app build production` through
-`$themeCmd`. Stop on failure. Verify the loaded manifest and stylesheet hashes for each mode.
+From `TestApp`, run `app refresh` and `app build development` through `$themeCmd`.
+Stop on failure. Verify the loaded manifest and stylesheet hashes.
 From the repository root, capture with the same run and environment:
 
 ```powershell
@@ -138,12 +143,13 @@ npm run compat:capture
 ```
 
 Expected: Appearance, geometry, computed styling, CSS fixtures, and behavior match the original.
-Do not accept this baseline until G0 is verified and all required comparisons pass.
+Do not accept this baseline until the demo G1 and G2 evidence passes. The current gate model also
+requires G0, which remains deferred. Keep G2 blocked until the next independent spec verifies G0.
 
 ## 5. Verify Rollback and Compare
 
 Restore the recorded original `theme` value.
-Refresh and build development and production through Cmd. Do not edit components, scripts, or legacy CSS.
+Refresh and build development through Cmd. Do not edit components, scripts, or legacy CSS.
 Then run from the repository root. Set `COMPAT_SELECTION_RUN` to the selection evidence run ID.
 
 ```powershell
@@ -155,17 +161,17 @@ npm run compat:report
 ```
 
 Expected: Rollback matches the original. Source hashes are unchanged.
-All required categories pass. G0 and G1 evidence permit G2 acceptance.
-If G0 is missing, the report must remain blocked even when demo comparisons match.
-
-Repeat the original, derived, and rollback sequence for production.
-Use `app build production`, serve `TestApp/build/production/TestApp`, and set
-`COMPAT_BUILD_MODE=production` and `COMPAT_BASE_URL=http://localhost:1842/`.
-Use a separate run ID. Keep its references separate from development.
+All required demo categories and G0 must pass before G2 acceptance. G0 remains deferred to the next
+independent spec. Keep G2 blocked until that spec verifies production inputs.
 
 ## 6. Validate Modernization and Release
 
-Start only after G2 passes. Define one change group in
+Normally, start after G2 passes. The only approved exception covers the existing T046 group
+in `TestApp`. Keep the original `ext-theme-classic` captures as the reference. The exception
+does not accept G2 or G3, approve modernized screenshots, or cover production. Do not start a
+later group until T046 is accepted.
+
+Define each change group in
 `artifacts/compatibility/<run>/approvals.json` before edits. Record its goal, scope, affected cases,
 variable and asset changes, risks, tests, rollback, reviewer, and date. Obtain reviewer approval.
 Do not treat a planned goal as approval.
@@ -175,12 +181,9 @@ Link immutable original references and the approved goal in the run manifest.
 Capture, review images, verify rollback, compare, and report.
 Do not update the original baseline to make a modernization difference disappear.
 
-Repeat with `app build production` and `COMPAT_BUILD_MODE=production`.
-Serve its actual generated page and set `COMPAT_BASE_URL` to that page.
-Build and capture the original, replacement, and rollback in production.
-Use a new run ID, the production URL, and the full matrix for each role.
-Keep the production references separate from development references.
-Do not compare development evidence to production evidence as one pair.
+Production acceptance is outside this quickstart. The next independent spec will verify production
+inputs and set its browser matrix and validation modes. Keep its references separate from
+development demo references. Do not run production builds in this feature.
 
 Expected: Approved paint differences only. No unapproved geometry or CSS contract differences.
 No behavior differences, missing required coverage, clipping, or asset failures.
