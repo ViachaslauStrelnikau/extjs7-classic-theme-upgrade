@@ -17,8 +17,9 @@ Run Sencha Cmd from the application directory:
 ```powershell
 sencha app refresh
 sencha app build development
-sencha app build production
 ```
+
+Use the development build for this demo. Production builds are outside this feature.
 
 The application must use the standard Sencha Cmd theme package system. Do not add a runtime CSS overlay.
 
@@ -30,7 +31,7 @@ Set the `theme` value in `TestApp/app.json` to the original value:
 "theme": "ext-theme-classic"
 ```
 
-Run `sencha app refresh` and rebuild the application with Sencha Cmd.
+Run `sencha app refresh` and `sencha app build development` for the demo.
 
 The application code and existing CSS do not need a theme-specific change.
 
