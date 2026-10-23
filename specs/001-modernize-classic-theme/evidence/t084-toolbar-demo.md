@@ -1,6 +1,7 @@
 # T084 Toolbar Surface Evidence
 
-**Status**: Implemented and automatically validated in the TestApp demo. Screenshot review and G3 acceptance remain pending.
+**Status**: Implemented and automatically validated in the TestApp demo. The owner accepted the
+displayed demo look on 2026-10-23. Full screenshot review and G3 acceptance remain pending.
 **Date**: 2026-10-21
 **Approval**: The project owner approved the toolbar gradient change for the demo only.
 
@@ -46,7 +47,11 @@ This run did not rebuild the original theme.
 
 ## Acceptance Status
 
-The compatibility report keeps G0 blocked for production readiness and defers its inputs to the next independent spec. G1 is not-run. G2, G3, and G4 remain blocked. Two repeated-original collapsed-panel cases are unstable in Chromium.
+The project owner accepted the displayed T046 and T084 screenshots as the intended demo look on
+2026-10-23. This approval covers the displayed examples only. The compatibility report keeps G0
+blocked for production readiness and defers its inputs to the next independent spec. G1 is not-run.
+G2, G3, and G4 remain blocked. Two repeated-original collapsed-panel cases are unstable in
+Chromium. See the [screenshot review](screenshot-review-20261023.md).
 The modernization comparator needs reviewer-approved screenshots. No screenshots were auto-approved.
 See the [compatibility report](../../../artifacts/compatibility/t084-toolbar-demo-20261021/compatibility-report.md)
 and [toolbar delta results](../../../artifacts/compatibility/t084-toolbar-demo-20261021/toolbar-delta-comparison.json).

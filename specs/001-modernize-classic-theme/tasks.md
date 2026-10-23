@@ -332,7 +332,13 @@ Do not mark a task complete until its stated evidence exists.
 
 - [ ] T084 [HIGH] Complete the approved demo toolbar container change required by FR-014 and AC-004. T045 and T046 cover toolbar buttons but not the toolbar surface. The Classic parent defines `$toolbar-background-gradient` in `TestApp/ext/classic/theme-classic/sass/var/toolbar/Toolbar.scss`. The project owner approved changing only `$toolbar-background-gradient` in `TestApp/packages/local/theme-classic-modern/sass/var/toolbar/Toolbar.scss`. Validate the demo toolbar states, geometry, CSS, interactions, screenshots, and rollback. Keep acceptance pending until the reviewer accepts the screenshot evidence and G3 checks.
   **Approval**: The project owner approved the demo-only toolbar gradient change on 2026-10-21. See [approved exceptions](evidence/approved-exceptions.md).
-  **Partial evidence**: The development build passed. The Playwright run passed 40/40 tests. The toolbar delta found zero direct geometry, unapproved CSS, or interaction differences. It changed only the toolbar background image. Keep T084 open until the reviewer accepts the screenshots. G0 is deferred for production readiness; G2, G3, and G4 remain blocked. G1 is not-run. See [T084 toolbar evidence](evidence/t084-toolbar-demo.md).
+  **Partial evidence**: The development build passed. The Playwright run passed 40/40 tests. The
+  toolbar delta found zero direct geometry, unapproved CSS, or interaction differences. It changed
+  only the toolbar background image. The owner accepted the displayed T046 and T084 screenshots as
+  the intended demo look on 2026-10-23. This does not accept the full screenshot matrix. Keep T084
+  open while G3 checks remain blocked. G0 is deferred for production readiness; G2, G3, and G4
+  remain blocked. G1 is not-run. See [T084 toolbar evidence](evidence/t084-toolbar-demo.md) and
+  [screenshot review](evidence/screenshot-review-20261023.md).
 
 ## T076 Investigation Update — 2026-10-22
 
