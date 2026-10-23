@@ -32,8 +32,10 @@ not the empty Derived role required by the baseline comparator. G1 is not-run an
 See `../../artifacts/compatibility/t086-painted-readiness-20261021/modernization-results.json` and
 `../../artifacts/compatibility/t086-painted-readiness-20261021/development-results.json`.
 
-T046 completes the approved demo paint implementation. T047 and G3 remain blocked by layout
-evidence and screenshot review. Production compatibility remains unverified.
+T046 completes the approved demo paint implementation. On 2026-10-23, the project owner accepted
+the displayed T046 and T084 screenshots as the intended demo look. This review covers the displayed
+examples only. T047 and G3 remain blocked by incomplete layout evidence. Production compatibility
+remains unverified. See the [screenshot review](screenshot-review-20261023.md).
 
 See `../../artifacts/compatibility/t086-painted-readiness-20261021/development/raw-pair-comparison.json`
 and `../../artifacts/compatibility/t086-painted-readiness-20261021/approvals.json`.
